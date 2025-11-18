@@ -19,6 +19,7 @@
         'oh_appraisal',
         'oh_appraisal_ext',
         'oh_9_box',
+        'spreadsheet_oca',
     ],
     'data': [
         'security/ir.model.access.csv',

@@ -1,7 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ============================================ -->
-    <!-- ACTION FIRST - Must be defined before reference -->
+    <!-- OPTIONAL: Menu Item for Direct Access -->
+    <!-- ============================================ -->
+    <!-- <menuitem id="menu_appraisal_criteria" 
+            name="Appraisal Criteria"
+            parent="hr.menu_hr_root"
+            action="action_view_appraisal_criteria"
+            sequence="50"
+            groups="hr.group_hr_user"/> -->
+
+    <!-- ============================================ -->
+    <!-- ACTION: Open Criteria List -->
+    <!-- ============================================ -->
+    <record id="action_view_appraisal_criteria" model="ir.actions.act_window">
+        <field name="name">Appraisal Criteria</field>
+        <field name="res_model">appraisal.criteria.data</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+        <field name="domain">[]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No criteria data found
+            </p>
+            <p>
+                Go to Employee → Appraisal tab to load criteria data.
+            </p>
+        </field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- ACTION: Create Appraisal -->
     <!-- ============================================ -->
     <record id="action_create_employee_appraisal" model="ir.actions.act_window">
         <field name="name">Create Appraisal</field>
@@ -34,7 +63,34 @@
                     <group string="Appraisal Records">
                         <field name="appraisal_ids" nolabel="1">
                             <form string="Employee Appraisal">
+                                <header>
+                                    <!-- Add status bar if needed later -->
+                                </header>
                                 <sheet>
+                                    <!-- Smart Button Box -->
+                                    <div class="oe_button_box" name="button_box">
+                                        <button name="action_view_criteria" 
+                                                type="object" 
+                                                class="oe_stat_button" 
+                                                icon="fa-list"
+                                                invisible="not criteria_loaded">
+                                            <field name="criteria_data_count" widget="statinfo" string="Criteria"/>
+                                        </button>
+                                        
+                                        <button name="action_view_spreadsheet" 
+                                                type="object" 
+                                                class="oe_stat_button" 
+                                                icon="fa-table"
+                                                invisible="not spreadsheet_document_id">
+                                            <div class="o_field_widget o_stat_info">
+                                                <span class="o_stat_text">Spreadsheet</span>
+                                                <span class="o_stat_value">
+                                                    <field name="spreadsheet_document_id" widget="reference" readonly="1"/>
+                                                </span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    
                                     <div class="oe_title">
                                         <h1>
                                             <field name="name" readonly="1"/>
@@ -47,19 +103,18 @@
                                         </group>
                                     </group>
                                     
-                                    <group string="📋 Auto-Detected Configuration" 
-                                           class="alert alert-info">
+                                    <group string="📋 Auto-Detected Configuration" class="alert alert-info">
                                         <group>
                                             <field name="appraisal_team_id" readonly="1"/>
                                             <field name="template_type" readonly="1"/>
                                         </group>
                                         <group>
                                             <field name="okr_template_id" 
-                                                   invisible="template_type != 'okr'" 
-                                                   readonly="1"/>
+                                                invisible="template_type != 'okr'" 
+                                                readonly="1"/>
                                             <field name="ninebox_template_id" 
-                                                   invisible="template_type != 'ninebox'" 
-                                                   readonly="1"/>
+                                                invisible="template_type != 'ninebox'" 
+                                                readonly="1"/>
                                         </group>
                                     </group>
                                     
@@ -67,27 +122,215 @@
                                         <field name="evaluation_type" widget="radio" required="1"/>
                                     </group>
                                     
-                                    <group string="📊 Evaluation Criteria" 
-                                           invisible="not evaluation_type">
+                                    <group string="📊 Evaluation Criteria" invisible="not evaluation_type">
+    
+                                        <!-- Buttons -->
+                                        <div class="mb-3">
+                                            <!-- Load button - creates everything -->
+                                            <button name="action_load_to_spreadsheet" 
+                                                    type="object" 
+                                                    string="📥 Load Criteria &amp; Create Spreadsheet" 
+                                                    class="btn-primary btn-lg"
+                                                    icon="fa-download"
+                                                    invisible="criteria_loaded"
+                                                    help="Load criteria from template and automatically create spreadsheet"/>
+                                            
+                                            <!-- View spreadsheet button -->
+                                            <button name="action_view_spreadsheet" 
+                                                    type="object" 
+                                                    string="📊 Open Spreadsheet" 
+                                                    class="btn-success btn-lg me-2"
+                                                    icon="fa-table"
+                                                    invisible="not criteria_loaded"
+                                                    help="Open the created spreadsheet"/>
+                                            
+                                            <!-- View criteria list button -->
+                                            <button name="action_view_criteria" 
+                                                    type="object" 
+                                                    string="📋 View Criteria List" 
+                                                    class="btn-info btn-lg"
+                                                    icon="fa-list"
+                                                    invisible="not criteria_loaded"
+                                                    help="View criteria in list format"/>
+                                        </div>
+                                        
+                                        <!-- Show HTML preview if not loaded -->
                                         <field name="criteria_data" 
-                                               nolabel="1" 
-                                               readonly="1" 
-                                               widget="html"/>
+                                            nolabel="1" 
+                                            readonly="1" 
+                                            widget="html"
+                                            invisible="criteria_loaded"/>
+                                        
+                                        <!-- Show success message if loaded -->
+                                        <div class="alert alert-success" invisible="not criteria_loaded">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fa fa-check-circle fa-3x me-3 text-success"></i>
+                                                <div class="flex-grow-1">
+                                                    <h4 class="alert-heading">
+                                                        <i class="fa fa-thumbs-up"></i> Ready to Edit!
+                                                    </h4>
+                                                    <p class="mb-2">
+                                                        <strong>
+                                                            <field name="criteria_data_count" class="oe_inline"/> criteria items
+                                                        </strong> 
+                                                        loaded with total weightage of 
+                                                        <strong>
+                                                            <field name="total_criteria_weightage" class="oe_inline"/>%
+                                                        </strong>
+                                                    </p>
+                                                    <hr/>
+                                                    <div class="mt-2">
+                                                        <p class="mb-1 fw-bold">
+                                                            <i class="fa fa-info-circle text-info"></i> What to do next:
+                                                        </p>
+                                                        <ul class="mb-0">
+                                                            <li>Click <strong>"Open Spreadsheet"</strong> to edit values in spreadsheet view</li>
+                                                            <li>Click <strong>"View Criteria List"</strong> to see data in table format</li>
+                                                            <li>Or go to <strong>Spreadsheets menu</strong> to access it anytime</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <field name="criteria_loaded" invisible="1"/>
                                     </group>
                                 </sheet>
                             </form>
                             
+                            <!-- Keep the list view as is -->
                             <list string="Appraisals">
                                 <field name="name"/>
                                 <field name="appraisal_team_id"/>
                                 <field name="template_type" widget="badge"/>
                                 <field name="evaluation_type" widget="badge"/>
+                                <field name="criteria_data_count" string="Criteria"/>
                                 <field name="create_date"/>
                             </list>
                         </field>
                     </group>
                 </page>
             </xpath>
+        </field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- EXCEL EXPORT ACTION (Define FIRST) -->
+    <!-- ============================================ -->
+    <record id="action_export_xlsx" model="ir.actions.server">
+        <field name="name">Export to Excel</field>
+        <field name="model_id" ref="model_appraisal_criteria_data"/>
+        <field name="state">code</field>
+        <field name="code">
+    if records:
+        action = {
+            'type': 'ir.actions.act_url',
+            'url': '/web/export/xlsx?model=appraisal.criteria.data&amp;ids=%s' % ','.join(map(str, records.ids)),
+            'target': 'self',
+        }
+        </field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- CRITERIA DATA SPREADSHEET VIEWS -->
+    <!-- ============================================ -->
+    <record id="view_appraisal_criteria_data_list" model="ir.ui.view">
+        <field name="name">appraisal.criteria.data.list</field>
+        <field name="model">appraisal.criteria.data</field>
+        <field name="arch" type="xml">
+            <list string="Appraisal Criteria" 
+                editable="bottom"
+                decoration-success="achievement_percentage >= 100"
+                decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                decoration-danger="achievement_percentage &lt; 70"
+                create="false"
+                delete="false"
+                >
+                
+                <!-- ❌ REMOVED: <header> tag - not supported in Odoo 18 list views -->
+                
+                <field name="sequence" widget="handle"/>
+                <field name="objective_breakdown" required="1" readonly="1"/>
+                <field name="priority" readonly="1"/>
+                <field name="metric" readonly="1"/>
+                <field name="target_value"/>
+                <field name="actual_value"/>
+                <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                <field name="achieve"/>
+                <field name="weightage"/>
+                <field name="team_name" readonly="1" optional="show"/>
+                <field name="criteria_type" readonly="1" optional="show"/>
+                <field name="appraisal_id" column_invisible="1"/>
+                <field name="display_name" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View for Details -->
+    <record id="view_appraisal_criteria_data_form" model="ir.ui.view">
+        <field name="name">appraisal.criteria.data.form</field>
+        <field name="model">appraisal.criteria.data</field>
+        <field name="arch" type="xml">
+            <form string="Criteria Details">
+                <sheet>
+                    <group>
+                        <group string="Criteria Information">
+                            <field name="objective_breakdown" readonly="1"/>
+                            <field name="priority" readonly="1"/>
+                            <field name="metric" readonly="1"/>
+                            <field name="criteria_type" readonly="1"/>
+                        </group>
+                        <group string="Values">
+                            <field name="target_value"/>
+                            <field name="actual_value"/>
+                            <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                            <field name="achieve"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Weightage &amp; Team">
+                            <field name="weightage"/>
+                            <field name="team_name" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_appraisal_criteria_data_search" model="ir.ui.view">
+        <field name="name">appraisal.criteria.data.search</field>
+        <field name="model">appraisal.criteria.data</field>
+        <field name="arch" type="xml">
+            <search string="Search Criteria">
+                <field name="objective_breakdown"/>
+                <field name="team_name"/>
+                <field name="appraisal_id"/>
+                
+                <filter string="High Achievement" 
+                        name="high_achievement" 
+                        domain="[('achievement_percentage', '>=', 90)]"/>
+                <filter string="Medium Achievement" 
+                        name="medium_achievement" 
+                        domain="[('achievement_percentage', '>=', 70), ('achievement_percentage', '&lt;', 90)]"/>
+                <filter string="Low Achievement" 
+                        name="low_achievement" 
+                        domain="[('achievement_percentage', '&lt;', 70)]"/>
+                
+                <group expand="0" string="Group By">
+                    <filter string="Appraisal" 
+                            name="group_appraisal" 
+                            context="{'group_by': 'appraisal_id'}"/>
+                    <filter string="Criteria Type" 
+                            name="group_criteria_type" 
+                            context="{'group_by': 'criteria_type'}"/>
+                    <filter string="Team" 
+                            name="group_team" 
+                            context="{'group_by': 'team_name'}"/>
+                </group>
+            </search>
         </field>
     </record>
 </odoo>
