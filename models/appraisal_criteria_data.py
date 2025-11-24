@@ -34,7 +34,7 @@ class AppraisalCriteriaData(models.Model):
     # Values
     target_value = fields.Float('Target Value', digits=(16, 2))
     actual_value = fields.Float('Actual Value', digits=(16, 2))
-    achieve = fields.Char('Achieve')
+    # achieve = fields.Char('Achieve')
     
     # Weightage
     weightage = fields.Float('Weightage (%)', digits=(5, 2))
@@ -120,7 +120,8 @@ class AppraisalCriteriaData(models.Model):
         headers = [
             'Seq', 'Objective Breakdown', 'Priority', 'Metric',
             'Target Value', 'Actual Value', 'Achievement %',
-            'Achieve', 'Weightage %', 'Team'
+            # 'Achieve', 
+            'Weightage %', 'Team'
         ]
         
         # Header row
@@ -141,7 +142,7 @@ class AppraisalCriteriaData(models.Model):
                 record.target_value,
                 record.actual_value,
                 record.achievement_percentage,
-                record.achieve or '',
+                # record.achieve or '',
                 record.weightage,
                 record.team_name or '',
             ]
@@ -201,7 +202,8 @@ class AppraisalCriteriaData(models.Model):
         headers = [
             'Seq', 'Objective Breakdown', 'Priority', 'Metric',
             'Target Value', 'Actual Value', 'Achievement %',
-            'Achieve', 'Weightage %', 'Team'
+            # 'Achieve', 
+            'Weightage %', 'Team'
         ]
         
         # ========================================
@@ -228,7 +230,7 @@ class AppraisalCriteriaData(models.Model):
                     record.target_value,
                     record.actual_value,
                     record.achievement_percentage,
-                    record.achieve or '',
+                    # record.achieve or '',
                     record.weightage,
                     record.team_name or '',
                 ]
@@ -294,7 +296,7 @@ class AppraisalCriteriaData(models.Model):
                     record.target_value,
                     record.actual_value,
                     record.achievement_percentage,
-                    record.achieve or '',
+                    # record.achieve or '',
                     record.weightage,
                     record.team_name or '',
                 ]

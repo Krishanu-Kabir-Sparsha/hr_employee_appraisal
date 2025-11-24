@@ -384,7 +384,7 @@ class HrEmployeeAppraisal(models.Model):
                 'metric': kr.metric or '',
                 'target_value': kr.target_value,
                 'actual_value': kr.actual_value or 0.0,
-                'achieve': kr.achieve or '',
+                # 'achieve': kr.achieve or '',
                 'weightage': kr.distributed_weightage,
                 'team_name': kr.team_id.name if kr.team_id else '',
                 'criteria_type': type_prefix,
@@ -426,7 +426,7 @@ class HrEmployeeAppraisal(models.Model):
                 'metric': line.metric or '',
                 'target_value': line.target_value,
                 'actual_value': line.actual_value or 0.0,
-                'achieve': line.achieve or '',
+                # 'achieve': line.achieve or '',
                 'weightage': line.distributed_weightage,
                 'team_name': line.team_id.name if line.team_id else '',
                 'criteria_type': type_prefix,
@@ -453,7 +453,7 @@ class HrEmployeeAppraisal(models.Model):
                 'metric': line.metric or '',
                 'target_value': line.target_value,
                 'actual_value': line.actual_value or 0.0,
-                'achieve': line.achieve or '',
+                # 'achieve': line.achieve or '',
                 'weightage': line.distributed_weightage,
                 'team_name': line.team_id.name if line.team_id else '',
                 'criteria_type': pot_type_prefix,
@@ -539,7 +539,7 @@ class HrEmployeeAppraisal(models.Model):
                         <th>Metric</th>
                         <th>Target</th>
                         <th>Actual</th>
-                        <th>Achieve</th>
+                        
                         <th class="text-end">Weightage (%)</th>
                         <th>Team</th>
                     </tr>
@@ -586,7 +586,7 @@ class HrEmployeeAppraisal(models.Model):
                 actual_display = '<span class="text-muted">-</span>'
             
             # Achieve
-            achieve = kr.achieve if kr.achieve else '<span class="text-muted">-</span>'
+            # achieve = kr.achieve if kr.achieve else '<span class="text-muted">-</span>'
             
             # Weightage
             weightage = f'{kr.distributed_weightage:.2f}' if kr.distributed_weightage else '<span class="text-muted">0.00</span>'
@@ -602,7 +602,7 @@ class HrEmployeeAppraisal(models.Model):
                     <td>{metric}</td>
                     <td>{target_display}</td>
                     <td>{actual_display}</td>
-                    <td>{achieve}</td>
+                    
                     <td class="text-end"><span class="badge bg-info">{weightage}%</span></td>
                     <td><small>{team_name}</small></td>
                 </tr>
@@ -671,7 +671,7 @@ class HrEmployeeAppraisal(models.Model):
                         <th>Metric</th>
                         <th class="text-end">Target Value</th>
                         <th class="text-end">Actual Value</th>
-                        <th>Achieve</th>
+                        
                         <th class="text-end">Weightage (%)</th>
                         <th>Team</th>
                     </tr>
@@ -686,7 +686,7 @@ class HrEmployeeAppraisal(models.Model):
                 metric = line.metric if line.metric else '<span class="text-muted">-</span>'
                 target = f'{line.target_value:.2f}' if line.target_value else '<span class="text-muted">0.00</span>'
                 actual = f'{line.actual_value:.2f}' if line.actual_value else '<span class="text-muted">-</span>'
-                achieve = line.achieve if line.achieve else '<span class="text-muted">-</span>'
+                # achieve = line.achieve if line.achieve else '<span class="text-muted">-</span>'
                 weightage = f'{line.distributed_weightage:.2f}' if line.distributed_weightage else '<span class="text-muted">0.00</span>'
                 team_name = line.team_id.name if line.team_id else '<span class="text-muted">-</span>'
                 
@@ -698,7 +698,7 @@ class HrEmployeeAppraisal(models.Model):
                         <td>{metric}</td>
                         <td class="text-end">{target}</td>
                         <td class="text-end">{actual}</td>
-                        <td>{achieve}</td>
+                        
                         <td class="text-end"><span class="badge bg-success">{weightage}%</span></td>
                         <td><small>{team_name}</small></td>
                     </tr>
@@ -730,7 +730,7 @@ class HrEmployeeAppraisal(models.Model):
                         <th>Metric</th>
                         <th class="text-end">Target Value</th>
                         <th class="text-end">Actual Value</th>
-                        <th>Achieve</th>
+                        
                         <th class="text-end">Weightage (%)</th>
                         <th>Team</th>
                     </tr>
@@ -745,7 +745,7 @@ class HrEmployeeAppraisal(models.Model):
                 metric = line.metric if line.metric else '<span class="text-muted">-</span>'
                 target = f'{line.target_value:.2f}' if line.target_value else '<span class="text-muted">0.00</span>'
                 actual = f'{line.actual_value:.2f}' if line.actual_value else '<span class="text-muted">-</span>'
-                achieve = line.achieve if line.achieve else '<span class="text-muted">-</span>'
+                # achieve = line.achieve if line.achieve else '<span class="text-muted">-</span>'
                 weightage = f'{line.distributed_weightage:.2f}' if line.distributed_weightage else '<span class="text-muted">0.00</span>'
                 team_name = line.team_id.name if line.team_id else '<span class="text-muted">-</span>'
                 
@@ -757,7 +757,7 @@ class HrEmployeeAppraisal(models.Model):
                         <td>{metric}</td>
                         <td class="text-end">{target}</td>
                         <td class="text-end">{actual}</td>
-                        <td>{achieve}</td>
+                        
                         <td class="text-end"><span class="badge bg-info">{weightage}%</span></td>
                         <td><small>{team_name}</small></td>
                     </tr>

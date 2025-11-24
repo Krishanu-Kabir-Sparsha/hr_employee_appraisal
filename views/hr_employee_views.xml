@@ -69,13 +69,13 @@
                                 <sheet>
                                     <!-- Smart Button Box -->
                                     <div class="oe_button_box" name="button_box">
-                                        <button name="action_view_criteria" 
+                                        <!-- <button name="action_view_criteria" 
                                                 type="object" 
                                                 class="oe_stat_button" 
                                                 icon="fa-list"
                                                 invisible="not criteria_loaded">
                                             <field name="criteria_data_count" widget="statinfo" string="Criteria"/>
-                                        </button>
+                                        </button> -->
                                         
                                         <button name="action_view_spreadsheet" 
                                                 type="object" 
@@ -145,13 +145,13 @@
                                                     help="Open the created spreadsheet"/>
                                             
                                             <!-- View criteria list button -->
-                                            <button name="action_view_criteria" 
+                                            <!-- <button name="action_view_criteria" 
                                                     type="object" 
                                                     string="📋 View Criteria List" 
                                                     class="btn-info btn-lg"
                                                     icon="fa-list"
                                                     invisible="not criteria_loaded"
-                                                    help="View criteria in list format"/>
+                                                    help="View criteria in list format"/> -->
                                         </div>
                                         
                                         <!-- Show HTML preview if not loaded -->
@@ -185,7 +185,7 @@
                                                         </p>
                                                         <ul class="mb-0">
                                                             <li>Click <strong>"Open Spreadsheet"</strong> to edit values in spreadsheet view</li>
-                                                            <li>Click <strong>"View Criteria List"</strong> to see data in table format</li>
+                                                            <!-- <li>Click <strong>"View Criteria List"</strong> to see data in table format</li> -->
                                                             <li>Or go to <strong>Spreadsheets menu</strong> to access it anytime</li>
                                                         </ul>
                                                     </div>
@@ -240,9 +240,9 @@
         <field name="arch" type="xml">
             <list string="Appraisal Criteria" 
                 editable="bottom"
-                decoration-success="achievement_percentage >= 100"
-                decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
-                decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                decoration-success="achievement_percentage &gt;= 100"
+                decoration-info="achievement_percentage &gt;= 90 and achievement_percentage &lt; 100"
+                decoration-warning="achievement_percentage &gt;= 70 and achievement_percentage &lt; 90"
                 decoration-danger="achievement_percentage &lt; 70"
                 create="false"
                 delete="false"
@@ -257,7 +257,7 @@
                 <field name="target_value"/>
                 <field name="actual_value"/>
                 <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                <field name="achieve"/>
+                <!-- <field name="achieve"/> -->
                 <field name="weightage"/>
                 <field name="team_name" readonly="1" optional="show"/>
                 <field name="criteria_type" readonly="1" optional="show"/>
@@ -285,7 +285,7 @@
                             <field name="target_value"/>
                             <field name="actual_value"/>
                             <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                            <field name="achieve"/>
+                            <!-- <field name="achieve"/> -->
                         </group>
                     </group>
                     <group>
@@ -311,10 +311,10 @@
                 
                 <filter string="High Achievement" 
                         name="high_achievement" 
-                        domain="[('achievement_percentage', '>=', 90)]"/>
+                        domain="[('achievement_percentage', '&gt;=', 90)]"/>
                 <filter string="Medium Achievement" 
                         name="medium_achievement" 
-                        domain="[('achievement_percentage', '>=', 70), ('achievement_percentage', '&lt;', 90)]"/>
+                        domain="[('achievement_percentage', '&gt;=', 70), ('achievement_percentage', '&lt;', 90)]"/>
                 <filter string="Low Achievement" 
                         name="low_achievement" 
                         domain="[('achievement_percentage', '&lt;', 70)]"/>
