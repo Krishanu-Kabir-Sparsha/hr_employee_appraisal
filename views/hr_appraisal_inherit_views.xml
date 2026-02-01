@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================ -->
+    <!-- INHERIT hr.appraisal FORM VIEW -->
+    <!-- Add Badge ID, Template Selection, Link Buttons -->
+    <!-- ============================================ -->
+    <record id="view_hr_appraisal_form_inherit_template" model="ir.ui.view">
+        <field name="name">hr.appraisal.form.inherit.template.selection</field>
+        <field name="model">hr.appraisal</field>
+        <field name="inherit_id" ref="oh_appraisal.hr_appraisal_view_form"/>
+        <field name="arch" type="xml">
+            
+            <!-- Add Badge ID field BEFORE employee_id label -->
+            <xpath expr="//label[@for='employee_id']" position="before">
+                <label for="employee_badge_id" string="Employee Badge ID"/>
+                <h2>
+                    <field name="employee_badge_id" 
+                           placeholder="Type Badge ID or Name..."
+                           class="oe_inline"
+                           options="{'no_create': True, 'no_create_edit': True, 'no_open': True}"
+                           context="{'search_default_name': True}"/>
+                </h2>
+            </xpath>
+            
+            <!-- Add Template Configuration Section inside the notebook (after Plan page content) -->
+            <!-- Using notebook position to add a new page -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Assessment Template" name="assessment_template">
+                    <group string="📋 Assessment Template Configuration" name="template_config">
+                        <group colspan="2">
+                            <field name="appraisal_template_type" widget="radio" 
+                                   options="{'horizontal': true}"/>
+                        </group>
+                        
+                        <!-- OKR Template Selection -->
+                        <group invisible="appraisal_template_type != 'okr'">
+                            <label for="okr_template_id" string="Select OKR Template"/>
+                            <div class="o_row">
+                                <field name="okr_template_id" 
+                                       options="{'no_create': True, 'no_edit': True}"
+                                       class="oe_inline"
+                                       nolabel="1"/>
+                                <button name="action_open_okr_template" 
+                                        type="object" 
+                                        class="btn-link px-1" 
+                                        icon="fa-external-link"
+                                        title="Open OKR Template"
+                                        invisible="not okr_template_id"/>
+                            </div>
+                        </group>
+                        
+                        <!-- 9-Box Template Selection -->
+                        <group invisible="appraisal_template_type != 'ninebox'">
+                            <label for="ninebox_template_id" string="Select 9-Box Template"/>
+                            <div class="o_row">
+                                <field name="ninebox_template_id" 
+                                       options="{'no_create': True, 'no_edit': True}"
+                                       class="oe_inline"
+                                       nolabel="1"/>
+                                <button name="action_open_ninebox_template" 
+                                        type="object" 
+                                        class="btn-link px-1" 
+                                        icon="fa-external-link"
+                                        title="Open 9-Box Template"
+                                        invisible="not ninebox_template_id"/>
+                            </div>
+                        </group>
+                        
+                        <!-- Selected Template Display -->
+                        <group colspan="2" invisible="appraisal_template_type == 'survey'">
+                            <field name="selected_template_display" readonly="1" 
+                                   string="Selected Template"
+                                   class="text-primary fw-bold"/>
+                        </group>
+                    </group>
+                    
+                    <!-- Appraisal Result Summary Section -->
+                    <group string="APPRAISAL RESULT SUMMARY" name="result_summary">
+                        <group>
+                            <field name="final_percentage" readonly="1"/>
+                            <field name="final_rating" readonly="1"/>
+                            <field name="result_id" readonly="1" string="Appraisal Result"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+            
+            <!-- Conditionally show/hide survey fields based on template type -->
+            <!-- Manager section -->
+            <xpath expr="//field[@name='hr_manager']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False) or check_draft == False</attribute>
+            </xpath>
+            <xpath expr="//field[@name='hr_manager_ids']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False) or hr_manager == False</attribute>
+            </xpath>
+            <xpath expr="//field[@name='manager_survey_id']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False) or hr_manager == False</attribute>
+            </xpath>
+            
+            <!-- Employee section -->
+            <xpath expr="//field[@name='hr_emp']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False)</attribute>
+            </xpath>
+            <xpath expr="//field[@name='emp_survey_id']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False) or hr_emp == False</attribute>
+            </xpath>
+            
+            <!-- Collaborator section -->
+            <xpath expr="//field[@name='hr_collaborator']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False) or check_draft == False</attribute>
+            </xpath>
+            <xpath expr="//field[@name='hr_collaborator_ids']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False) or hr_collaborator == False</attribute>
+            </xpath>
+            <xpath expr="//field[@name='collaborator_survey_id']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False) or hr_collaborator == False</attribute>
+            </xpath>
+            
+            <!-- Colleague section -->
+            <xpath expr="//field[@name='hr_colleague']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False)</attribute>
+            </xpath>
+            <xpath expr="//field[@name='hr_colleague_ids']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False) or hr_colleague == False</attribute>
+            </xpath>
+            <xpath expr="//field[@name='colleague_survey_id']" position="attributes">
+                <attribute name="invisible">appraisal_template_type not in ('survey', False) or hr_colleague == False</attribute>
+            </xpath>
+            
+        </field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- INHERIT hr.appraisal LIST/TREE VIEW -->
+    <!-- Add template info column -->
+    <!-- ============================================ -->
+    <record id="view_hr_appraisal_tree_inherit_template" model="ir.ui.view">
+        <field name="name">hr.appraisal.tree.inherit.template</field>
+        <field name="model">hr.appraisal</field>
+        <field name="inherit_id" ref="oh_appraisal.hr_appraisal_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='employee_id']" position="before">
+                <field name="employee_badge_id" optional="show" string="Badge ID"/>
+            </xpath>
+            <xpath expr="//field[@name='employee_id']" position="after">
+                <field name="appraisal_template_type" widget="badge" 
+                       decoration-info="appraisal_template_type == 'survey'"
+                       decoration-success="appraisal_template_type == 'okr'"
+                       decoration-warning="appraisal_template_type == 'ninebox'"
+                       optional="show"
+                       string="Template Type"/>
+                <field name="selected_template_display" optional="hide" string="Template"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- INHERIT hr.appraisal KANBAN VIEW -->
+    <!-- Add template badge -->
+    <!-- ============================================ -->
+    <record id="view_hr_appraisal_kanban_inherit_template" model="ir.ui.view">
+        <field name="name">hr.appraisal.kanban.inherit.template</field>
+        <field name="model">hr.appraisal</field>
+        <field name="inherit_id" ref="oh_appraisal.hr_appraisal_view_kanban"/>
+        <field name="arch" type="xml">
+            <!-- Add field to kanban -->
+            <xpath expr="//kanban/field[@name='stage_id']" position="after">
+                <field name="appraisal_template_type"/>
+            </xpath>
+            
+            <!-- Add template badge in kanban card after employee name -->
+            <xpath expr="//div[@class='oe_kanban_content']/div[1]/strong" position="after">
+                <div class="mt-1">
+                    <span t-if="record.appraisal_template_type.raw_value == 'okr'" 
+                          class="badge text-bg-success">OKR</span>
+                    <span t-if="record.appraisal_template_type.raw_value == 'ninebox'" 
+                          class="badge text-bg-warning">9-Box</span>
+                    <span t-if="record.appraisal_template_type.raw_value == 'survey'" 
+                          class="badge text-bg-info">Survey</span>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- CREATE SEARCH VIEW for hr.appraisal -->
+    <!-- (oh_appraisal doesn't have one, so we create it) -->
+    <!-- ============================================ -->
+    <record id="view_hr_appraisal_search_template" model="ir.ui.view">
+        <field name="name">hr.appraisal.search.template</field>
+        <field name="model">hr.appraisal</field>
+        <field name="arch" type="xml">
+            <search string="Search Appraisals">
+                <field name="employee_id"/>
+                <field name="employee_badge_id" string="Badge ID"/>
+                <field name="okr_template_id"/>
+                <field name="ninebox_template_id"/>
+                
+                <separator/>
+                <filter string="Survey Appraisals" 
+                        name="filter_survey" 
+                        domain="[('appraisal_template_type', '=', 'survey')]"/>
+                <filter string="OKR Appraisals" 
+                        name="filter_okr" 
+                        domain="[('appraisal_template_type', '=', 'okr')]"/>
+                <filter string="9-Box Appraisals" 
+                        name="filter_ninebox" 
+                        domain="[('appraisal_template_type', '=', 'ninebox')]"/>
+                
+                <separator/>
+                <filter string="My Appraisals" 
+                        name="filter_my_appraisals"
+                        domain="[('employee_id.user_id', '=', uid)]"/>
+                
+                <group expand="0" string="Group By">
+                    <filter string="Employee" 
+                            name="group_employee" 
+                            context="{'group_by': 'employee_id'}"/>
+                    <filter string="Template Type" 
+                            name="group_template_type" 
+                            context="{'group_by': 'appraisal_template_type'}"/>
+                    <filter string="Stage" 
+                            name="group_stage" 
+                            context="{'group_by': 'stage_id'}"/>
+                    <filter string="OKR Template" 
+                            name="group_okr" 
+                            context="{'group_by': 'okr_template_id'}"/>
+                    <filter string="9-Box Template" 
+                            name="group_ninebox" 
+                            context="{'group_by': 'ninebox_template_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+</odoo>

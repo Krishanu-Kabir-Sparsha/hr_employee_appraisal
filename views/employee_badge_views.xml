@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================ -->
+    <!-- Tree View for Employee Badge (Search More popup) -->
+    <!-- ============================================ -->
+    <record id="view_employee_badge_tree" model="ir.ui.view">
+        <field name="name">employee.badge.tree</field>
+        <field name="model">employee.badge</field>
+        <field name="arch" type="xml">
+            <list string="Employee Badges" create="false" edit="false" delete="false">
+                <field name="badge_id" string="Badge ID"/>
+                <field name="employee_name" string="Employee Name"/>
+                <field name="name" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- Search View for Employee Badge -->
+    <!-- ============================================ -->
+    <record id="view_employee_badge_search" model="ir.ui.view">
+        <field name="name">employee.badge.search</field>
+        <field name="model">employee.badge</field>
+        <field name="arch" type="xml">
+            <search string="Search Badges">
+                <field name="badge_id" string="Badge ID" 
+                       filter_domain="[('badge_id', 'ilike', self)]"/>
+                <field name="employee_name" string="Employee Name"
+                       filter_domain="[('employee_name', 'ilike', self)]"/>
+                <field name="name" string="Badge / Name"
+                       filter_domain="['|', ('badge_id', 'ilike', self), ('employee_name', 'ilike', self)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- ============================================ -->
+    <!-- Form View for Employee Badge (optional, for completeness) -->
+    <!-- ============================================ -->
+    <record id="view_employee_badge_form" model="ir.ui.view">
+        <field name="name">employee.badge.form</field>
+        <field name="model">employee.badge</field>
+        <field name="arch" type="xml">
+            <form string="Employee Badge" create="false" edit="false" delete="false">
+                <sheet>
+                    <group>
+                        <field name="badge_id" string="Badge ID"/>
+                        <field name="employee_name" string="Employee Name"/>
+                        <field name="employee_id" string="Employee"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>

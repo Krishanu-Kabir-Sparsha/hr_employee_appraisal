@@ -2,3 +2,6 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_hr_employee_appraisal_user,hr.employee.appraisal.user,model_hr_employee_appraisal,hr.group_hr_user,1,1,1,1
 access_hr_employee_appraisal_manager,hr.employee.appraisal.manager,model_hr_employee_appraisal,hr.group_hr_manager,1,1,1,1
 access_appraisal_criteria_data_user,appraisal.criteria.data.user,model_appraisal_criteria_data,hr.group_hr_user,1,1,1,1
+access_appraisal_criteria_data_manager,appraisal.criteria.data.manager,model_appraisal_criteria_data,hr.group_hr_manager,1,1,1,1
+access_employee_badge_user,employee.badge.user,model_employee_badge,hr.group_hr_user,1,0,0,0
+access_employee_badge_manager,employee.badge.manager,model_employee_badge,hr.group_hr_manager,1,0,0,0
