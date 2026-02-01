@@ -26,7 +26,35 @@
             <!-- Using notebook position to add a new page -->
             <xpath expr="//notebook" position="inside">
                 <page string="Assessment Template" name="assessment_template">
+                    <!-- Hidden fields for domain computation -->
+                    <field name="employee_team_ids" invisible="1"/>
+                    <field name="available_okr_template_ids" invisible="1"/>
+                    <field name="available_ninebox_template_ids" invisible="1"/>
+                    <field name="has_okr_templates" invisible="1"/>
+                    <field name="has_ninebox_templates" invisible="1"/>
+                    
                     <group string="📋 Assessment Template Configuration" name="template_config">
+                        <!-- Show employee's teams info -->
+                        <group colspan="2" invisible="not employee_id">
+                            <div class="alert alert-info" role="alert" invisible="not employee_team_ids">
+                                <strong><i class="fa fa-users"/> Employee's Teams: </strong>
+                                <field name="employee_team_ids" widget="many2many_tags" readonly="1" nolabel="1" class="d-inline"/>
+                            </div>
+                            <div class="alert alert-warning" role="alert" invisible="employee_team_ids">
+                                <i class="fa fa-exclamation-triangle"/> 
+                                <strong>Warning:</strong> This employee is not assigned to any team. 
+                                Please assign the employee to a team to see available templates.
+                            </div>
+                        </group>
+                        
+                        <!-- No templates message -->
+                        <group colspan="2" invisible="not no_templates_message">
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fa fa-info-circle"/> 
+                                <field name="no_templates_message" nolabel="1" readonly="1"/>
+                            </div>
+                        </group>
+                        
                         <group colspan="2">
                             <field name="appraisal_template_type" widget="radio" 
                                    options="{'horizontal': true}"/>
@@ -39,13 +67,17 @@
                                 <field name="okr_template_id" 
                                        options="{'no_create': True, 'no_edit': True}"
                                        class="oe_inline"
-                                       nolabel="1"/>
+                                       nolabel="1"
+                                       placeholder="Select OKR Template..."/>
                                 <button name="action_open_okr_template" 
                                         type="object" 
                                         class="btn-link px-1" 
                                         icon="fa-external-link"
                                         title="Open OKR Template"
                                         invisible="not okr_template_id"/>
+                            </div>
+                            <div class="text-muted small" invisible="has_okr_templates">
+                                <i class="fa fa-info-circle"/> No OKR templates available for this employee's teams.
                             </div>
                         </group>
                         
@@ -56,13 +88,17 @@
                                 <field name="ninebox_template_id" 
                                        options="{'no_create': True, 'no_edit': True}"
                                        class="oe_inline"
-                                       nolabel="1"/>
+                                       nolabel="1"
+                                       placeholder="Select 9-Box Template..."/>
                                 <button name="action_open_ninebox_template" 
                                         type="object" 
                                         class="btn-link px-1" 
                                         icon="fa-external-link"
                                         title="Open 9-Box Template"
                                         invisible="not ninebox_template_id"/>
+                            </div>
+                            <div class="text-muted small" invisible="has_ninebox_templates">
+                                <i class="fa fa-info-circle"/> No 9-Box templates available for this employee's teams.
                             </div>
                         </group>
                         
