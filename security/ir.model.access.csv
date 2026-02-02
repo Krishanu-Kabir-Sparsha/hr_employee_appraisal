@@ -5,3 +5,11 @@ access_appraisal_criteria_data_user,appraisal.criteria.data.user,model_appraisal
 access_appraisal_criteria_data_manager,appraisal.criteria.data.manager,model_appraisal_criteria_data,hr.group_hr_manager,1,1,1,1
 access_employee_badge_user,employee.badge.user,model_employee_badge,hr.group_hr_user,1,0,0,0
 access_employee_badge_manager,employee.badge.manager,model_employee_badge,hr.group_hr_manager,1,0,0,0
+access_hr_appraisal_okr_line_user,hr.appraisal.okr.line.user,model_hr_appraisal_okr_line,hr.group_hr_user,1,1,1,1
+access_hr_appraisal_okr_line_manager,hr.appraisal.okr.line.manager,model_hr_appraisal_okr_line,hr.group_hr_manager,1,1,1,1
+access_hr_appraisal_ninebox_perf_line_user,hr.appraisal.ninebox.performance.line.user,model_hr_appraisal_ninebox_performance_line,hr.group_hr_user,1,1,1,1
+access_hr_appraisal_ninebox_perf_line_manager,hr.appraisal.ninebox.performance.line.manager,model_hr_appraisal_ninebox_performance_line,hr.group_hr_manager,1,1,1,1
+access_hr_appraisal_ninebox_pot_line_user,hr.appraisal.ninebox.potential.line.user,model_hr_appraisal_ninebox_potential_line,hr.group_hr_user,1,1,1,1
+access_hr_appraisal_ninebox_pot_line_manager,hr.appraisal.ninebox.potential.line.manager,model_hr_appraisal_ninebox_potential_line,hr.group_hr_manager,1,1,1,1
+access_appraisal_evaluation_type_user,appraisal.evaluation.type.user,model_appraisal_evaluation_type,base.group_user,1,0,0,0
+access_appraisal_evaluation_type_manager,appraisal.evaluation.type.manager,model_appraisal_evaluation_type,hr.group_hr_manager,1,1,1,1

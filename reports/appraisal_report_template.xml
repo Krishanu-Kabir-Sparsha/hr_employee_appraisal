@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Report Definition -->
+    <record id="action_report_appraisal" model="ir.actions.report">
+        <field name="name">Appraisal Report</field>
+        <field name="model">hr.appraisal</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">hr_employee_appraisal.report_appraisal_document</field>
+        <field name="report_file">hr_employee_appraisal.report_appraisal_document</field>
+        <field name="binding_model_id" ref="oh_appraisal.model_hr_appraisal"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Report Template -->
+    <template id="report_appraisal_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- Header -->
+                        <div class="text-center mb-4">
+                            <h2>Employee Performance Appraisal Report</h2>
+                            <p class="text-muted">
+                                <t t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d')"/>
+                            </p>
+                        </div>
+
+                        <!-- Employee Information -->
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <strong>Employee:</strong> <t t-esc="o.employee_id.name"/><br/>
+                                <strong>Badge ID:</strong> <t t-esc="o.employee_id.barcode or 'N/A'"/><br/>
+                                <strong>Department:</strong> <t t-esc="o.employee_id.department_id.name or 'N/A'"/><br/>
+                            </div>
+                            <div class="col-6">
+                                <strong>Appraisal Type:</strong> <t t-esc="dict(o._fields['appraisal_template_type'].selection).get(o.appraisal_template_type)"/><br/>
+                                <strong>Template:</strong> <t t-esc="o.selected_template_display or 'N/A'"/><br/>
+                                <strong>Deadline:</strong> <t t-esc="o.appraisal_deadline or 'N/A'"/><br/>
+                            </div>
+                        </div>
+
+                        <!-- Performance Summary -->
+                        <div class="row mb-4" t-if="o.criteria_loaded">
+                            <div class="col-12">
+                                <h4 class="border-bottom pb-2">Performance Summary</h4>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Final Score:</strong></td>
+                                        <td><span class="badge badge-primary"><t t-esc="'%.2f' % o.final_score"/>%</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Performance Rating:</strong></td>
+                                        <td><span class="badge badge-success"><t t-esc="dict(o._fields['performance_rating'].selection).get(o.performance_rating)"/></span></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- OKR Criteria Table -->
+                        <div class="row" t-if="o.appraisal_template_type == 'okr' and o.okr_line_ids">
+                            <div class="col-12">
+                                <h4 class="border-bottom pb-2">OKR Criteria</h4>
+                                <table class="table table-sm table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Objective</th>
+                                            <th>Priority</th>
+                                            <th class="text-end">Target</th>
+                                            <th class="text-end">Actual</th>
+                                            <th class="text-end">Achievement %</th>
+                                            <th class="text-end">Weightage %</th>
+                                            <th class="text-end">Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="o.okr_line_ids" t-as="line">
+                                            <tr>
+                                                <td><t t-esc="dict(line._fields['line_type'].selection).get(line.line_type)"/></td>
+                                                <td><t t-esc="line.objective_breakdown"/></td>
+                                                <td><t t-esc="dict(line._fields['priority'].selection).get(line.priority) if line.priority else ''"/></td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.target_value"/></td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.actual_value"/></td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.achievement_percentage"/>%</td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.weightage"/>%</td>
+                                                <td class="text-end"><strong><t t-esc="'%.2f' % line.weighted_score"/></strong></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="font-weight-bold">
+                                            <td colspan="7" class="text-end">Total Score:</td>
+                                            <td class="text-end"><strong><t t-esc="'%.2f' % o.total_okr_score"/>%</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 9-Box Performance Table -->
+                        <div class="row" t-if="o.appraisal_template_type == 'ninebox' and o.ninebox_performance_line_ids">
+                            <div class="col-12">
+                                <h4 class="border-bottom pb-2">Performance Criteria</h4>
+                                <table class="table table-sm table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Objective</th>
+                                            <th class="text-end">Target</th>
+                                            <th class="text-end">Actual</th>
+                                            <th class="text-end">Achievement %</th>
+                                            <th class="text-end">Weightage %</th>
+                                            <th class="text-end">Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="o.ninebox_performance_line_ids" t-as="line">
+                                            <tr>
+                                                <td><t t-esc="dict(line._fields['line_type'].selection).get(line.line_type)"/></td>
+                                                <td><t t-esc="line.objective_breakdown"/></td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.target_value"/></td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.actual_value"/></td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.achievement_percentage"/>%</td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.weightage"/>%</td>
+                                                <td class="text-end"><strong><t t-esc="'%.2f' % line.weighted_score"/></strong></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="font-weight-bold">
+                                            <td colspan="6" class="text-end">Total Performance Score:</td>
+                                            <td class="text-end"><strong><t t-esc="'%.2f' % o.total_performance_score"/>%</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 9-Box Potential Table -->
+                        <div class="row mt-3" t-if="o.appraisal_template_type == 'ninebox' and o.ninebox_potential_line_ids">
+                            <div class="col-12">
+                                <h4 class="border-bottom pb-2">Potential Criteria</h4>
+                                <table class="table table-sm table-bordered">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Objective</th>
+                                            <th class="text-end">Target</th>
+                                            <th class="text-end">Actual</th>
+                                            <th class="text-end">Achievement %</th>
+                                            <th class="text-end">Weightage %</th>
+                                            <th class="text-end">Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="o.ninebox_potential_line_ids" t-as="line">
+                                            <tr>
+                                                <td><t t-esc="dict(line._fields['line_type'].selection).get(line.line_type)"/></td>
+                                                <td><t t-esc="line.objective_breakdown"/></td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.target_value"/></td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.actual_value"/></td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.achievement_percentage"/>%</td>
+                                                <td class="text-end"><t t-esc="'%.2f' % line.weightage"/>%</td>
+                                                <td class="text-end"><strong><t t-esc="'%.2f' % line.weighted_score"/></strong></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="font-weight-bold">
+                                            <td colspan="6" class="text-end">Total Potential Score:</td>
+                                            <td class="text-end"><strong><t t-esc="'%.2f' % o.total_potential_score"/>%</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="row mt-5">
+                            <div class="col-12">
+                                <p class="text-muted small">
+                                    This report was generated on <t t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M:%S')"/>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

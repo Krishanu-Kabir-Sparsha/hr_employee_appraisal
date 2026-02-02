@@ -41,7 +41,7 @@
     </record>
 
     <!-- ============================================ -->
-    <!-- NOW Add Appraisal Tab to Employee Form -->
+    <!-- Add Appraisal Tab to Employee Form -->
     <!-- ============================================ -->
     <record id="view_employee_form_appraisal_tab" model="ir.ui.view">
         <field name="name">hr.employee.form.appraisal.tab</field>
@@ -51,17 +51,61 @@
             <!-- Add Appraisal Tab -->
             <xpath expr="//notebook" position="inside">
                 <page string="Appraisal" name="appraisal" groups="hr.group_hr_user">
-                    <group>
-                        <button name="%(action_create_employee_appraisal)d" 
-                                type="action" 
-                                string="Create New Appraisal" 
-                                class="btn-primary"
-                                icon="fa-plus"
-                                context="{'default_employee_id': id}"/>
+                    
+                    <!-- ============================================ -->
+                    <!-- SECTION 1: Appraisals from Main Appraisal Module (oh_appraisal) -->
+                    <!-- ============================================ -->
+                    <group string="📊 Appraisals from Appraisal Module">
+                        <group colspan="2">
+                            <div class="alert alert-info" role="alert">
+                                <i class="fa fa-info-circle"/> 
+                                These are appraisals created in the main <strong>Appraisal</strong> module with OKR/9-Box templates.
+                            </div>
+                        </group>
+                        
+                        <field name="oh_appraisal_ids" nolabel="1" colspan="2">
+                            <list string="Appraisals" 
+                                  decoration-success="performance_rating == 'outstanding'"
+                                  decoration-info="performance_rating == 'exceeds'"
+                                  decoration-warning="performance_rating == 'needs_improvement'">
+                                <field name="employee_id" column_invisible="1"/>
+                                <field name="appraisal_deadline" string="Deadline"/>
+                                <field name="appraisal_template_type" widget="badge"
+                                       decoration-success="appraisal_template_type == 'okr'"
+                                       decoration-warning="appraisal_template_type == 'ninebox'"
+                                       decoration-info="appraisal_template_type == 'survey'"
+                                       string="Type"/>
+                                <field name="selected_template_display" string="Template"/>
+                                <field name="evaluation_types_display" string="Evaluation Types" optional="show"/>
+                                <field name="final_score" string="Score (%)" optional="show"/>
+                                <field name="performance_rating" widget="badge"
+                                       decoration-success="performance_rating == 'outstanding'"
+                                       decoration-info="performance_rating == 'exceeds'"
+                                       decoration-primary="performance_rating == 'meets'"
+                                       decoration-warning="performance_rating == 'needs_improvement'"
+                                       decoration-danger="performance_rating == 'unsatisfactory'"
+                                       string="Rating" optional="show"/>
+                                <field name="criteria_loaded" string="Loaded" widget="boolean" optional="hide"/>
+                                <field name="stage_id" widget="badge" optional="show"/>
+                                <field name="create_date" string="Created"/>
+                            </list>
+                        </field>
                     </group>
                     
-                    <group string="Appraisal Records">
-                        <field name="appraisal_ids" nolabel="1">
+                    <!-- ============================================ -->
+                    <!-- SECTION 2: Employee-Specific Appraisals (hr.employee.appraisal) -->
+                    <!-- ============================================ -->
+                    <group string="📋 Employee-Specific Appraisals">
+                        <group colspan="2">
+                            <button name="%(action_create_employee_appraisal)d" 
+                                    type="action" 
+                                    string="Create New Employee Appraisal" 
+                                    class="btn-primary"
+                                    icon="fa-plus"
+                                    context="{'default_employee_id': id}"/>
+                        </group>
+                        
+                        <field name="appraisal_ids" nolabel="1" colspan="2">
                             <form string="Employee Appraisal">
                                 <header>
                                     <!-- Add status bar if needed later -->
@@ -69,14 +113,6 @@
                                 <sheet>
                                     <!-- Smart Button Box -->
                                     <div class="oe_button_box" name="button_box">
-                                        <!-- <button name="action_view_criteria" 
-                                                type="object" 
-                                                class="oe_stat_button" 
-                                                icon="fa-list"
-                                                invisible="not criteria_loaded">
-                                            <field name="criteria_data_count" widget="statinfo" string="Criteria"/>
-                                        </button> -->
-                                        
                                         <button name="action_view_spreadsheet" 
                                                 type="object" 
                                                 class="oe_stat_button" 
@@ -123,7 +159,7 @@
                                     </group>
                                     
                                     <group string="📊 Evaluation Criteria" invisible="not evaluation_type">
-    
+                
                                         <!-- Buttons -->
                                         <div class="mb-3">
                                             <!-- Load button - creates everything -->
@@ -143,15 +179,6 @@
                                                     icon="fa-table"
                                                     invisible="not criteria_loaded"
                                                     help="Open the created spreadsheet"/>
-                                            
-                                            <!-- View criteria list button -->
-                                            <!-- <button name="action_view_criteria" 
-                                                    type="object" 
-                                                    string="📋 View Criteria List" 
-                                                    class="btn-info btn-lg"
-                                                    icon="fa-list"
-                                                    invisible="not criteria_loaded"
-                                                    help="View criteria in list format"/> -->
                                         </div>
                                         
                                         <!-- Show HTML preview if not loaded -->
@@ -185,7 +212,6 @@
                                                         </p>
                                                         <ul class="mb-0">
                                                             <li>Click <strong>"Open Spreadsheet"</strong> to edit values in spreadsheet view</li>
-                                                            <!-- <li>Click <strong>"View Criteria List"</strong> to see data in table format</li> -->
                                                             <li>Or go to <strong>Spreadsheets menu</strong> to access it anytime</li>
                                                         </ul>
                                                     </div>
@@ -198,7 +224,7 @@
                                 </sheet>
                             </form>
                             
-                            <!-- Keep the list view as is -->
+                            <!-- List view for Employee-Specific Appraisals -->
                             <list string="Appraisals">
                                 <field name="name"/>
                                 <field name="appraisal_team_id"/>
@@ -248,8 +274,6 @@
                 delete="false"
                 >
                 
-                <!-- ❌ REMOVED: <header> tag - not supported in Odoo 18 list views -->
-                
                 <field name="sequence" widget="handle"/>
                 <field name="objective_breakdown" required="1" readonly="1"/>
                 <field name="priority" readonly="1"/>
@@ -257,7 +281,6 @@
                 <field name="target_value"/>
                 <field name="actual_value"/>
                 <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                <!-- <field name="achieve"/> -->
                 <field name="weightage"/>
                 <field name="team_name" readonly="1" optional="show"/>
                 <field name="criteria_type" readonly="1" optional="show"/>
@@ -285,7 +308,6 @@
                             <field name="target_value"/>
                             <field name="actual_value"/>
                             <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                            <!-- <field name="achieve"/> -->
                         </group>
                     </group>
                     <group>

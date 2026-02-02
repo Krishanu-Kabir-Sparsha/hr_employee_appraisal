@@ -2,7 +2,7 @@
 <odoo>
     <!-- ============================================ -->
     <!-- INHERIT hr.appraisal FORM VIEW -->
-    <!-- Add Badge ID, Template Selection, Link Buttons -->
+    <!-- Add Badge ID, Template Selection, Criteria Lines, Scoring -->
     <!-- ============================================ -->
     <record id="view_hr_appraisal_form_inherit_template" model="ir.ui.view">
         <field name="name">hr.appraisal.form.inherit.template.selection</field>
@@ -22,8 +22,30 @@
                 </h2>
             </xpath>
             
-            <!-- Add Template Configuration Section inside the notebook (after Plan page content) -->
-            <!-- Using notebook position to add a new page -->
+            <!-- Add Smart Buttons in button_box -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_spreadsheet" 
+                        type="object" 
+                        class="oe_stat_button" 
+                        icon="fa-table"
+                        invisible="not spreadsheet_id">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Spreadsheet</span>
+                    </div>
+                </button>
+                
+                <button name="action_print_appraisal_report" 
+                        type="object" 
+                        class="oe_stat_button" 
+                        icon="fa-file-pdf-o"
+                        invisible="not criteria_loaded or appraisal_template_type == 'survey'">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Print Report</span>
+                    </div>
+                </button>
+            </xpath>
+            
+            <!-- Add Template Configuration and Criteria inside notebook -->
             <xpath expr="//notebook" position="inside">
                 <page string="Assessment Template" name="assessment_template">
                     <!-- Hidden fields for domain computation -->
@@ -32,6 +54,18 @@
                     <field name="available_ninebox_template_ids" invisible="1"/>
                     <field name="has_okr_templates" invisible="1"/>
                     <field name="has_ninebox_templates" invisible="1"/>
+                    <field name="criteria_loaded" invisible="1"/>
+                    
+                    <!-- Hidden helper fields for line type existence -->
+                    <field name="has_dept_okr" invisible="1"/>
+                    <field name="has_role_okr" invisible="1"/>
+                    <field name="has_common_okr" invisible="1"/>
+                    <field name="has_dept_performance" invisible="1"/>
+                    <field name="has_role_performance" invisible="1"/>
+                    <field name="has_common_performance" invisible="1"/>
+                    <field name="has_dept_potential" invisible="1"/>
+                    <field name="has_role_potential" invisible="1"/>
+                    <field name="has_common_potential" invisible="1"/>
                     
                     <group string="📋 Assessment Template Configuration" name="template_config">
                         <!-- Show employee's teams info -->
@@ -42,8 +76,7 @@
                             </div>
                             <div class="alert alert-warning" role="alert" invisible="employee_team_ids">
                                 <i class="fa fa-exclamation-triangle"/> 
-                                <strong>Warning:</strong> This employee is not assigned to any team. 
-                                Please assign the employee to a team to see available templates.
+                                <strong>Warning:</strong> This employee is not assigned to any team.
                             </div>
                         </group>
                         
@@ -76,9 +109,6 @@
                                         title="Open OKR Template"
                                         invisible="not okr_template_id"/>
                             </div>
-                            <div class="text-muted small" invisible="has_okr_templates">
-                                <i class="fa fa-info-circle"/> No OKR templates available for this employee's teams.
-                            </div>
                         </group>
                         
                         <!-- 9-Box Template Selection -->
@@ -97,8 +127,21 @@
                                         title="Open 9-Box Template"
                                         invisible="not ninebox_template_id"/>
                             </div>
-                            <div class="text-muted small" invisible="has_ninebox_templates">
-                                <i class="fa fa-info-circle"/> No 9-Box templates available for this employee's teams.
+                        </group>
+                        
+                        <!-- Evaluation Type Selection - Many2many -->
+                        <group colspan="2" invisible="appraisal_template_type == 'survey' or (not okr_template_id and not ninebox_template_id)">
+                            <field name="evaluation_type_ids" widget="many2many_tags"
+                                   options="{'color_field': 'sequence', 'no_create': True}"
+                                   required="appraisal_template_type in ('okr', 'ninebox')"
+                                   placeholder="Select evaluation types..."/>
+                        </group>
+                        
+                        <!-- Display selected types -->
+                        <group colspan="2" invisible="not evaluation_types_display">
+                            <div class="alert alert-info">
+                                <strong><i class="fa fa-check-circle"/> Selected Evaluations: </strong>
+                                <field name="evaluation_types_display" nolabel="1" readonly="1" class="d-inline"/>
                             </div>
                         </group>
                         
@@ -108,14 +151,313 @@
                                    string="Selected Template"
                                    class="text-primary fw-bold"/>
                         </group>
+                        
+                        <!-- Action Buttons -->
+                        <group colspan="2" invisible="appraisal_template_type == 'survey' or (not okr_template_id and not ninebox_template_id) or not evaluation_type_ids">
+                            <div class="mb-3">
+                                <button name="action_load_criteria" 
+                                        type="object" 
+                                        string="📥 Load Criteria from Template" 
+                                        class="btn-primary btn-lg me-2"
+                                        icon="fa-download"
+                                        invisible="criteria_loaded"
+                                        help="Load criteria from selected template"/>
+                                
+                                <button name="action_generate_spreadsheet" 
+                                        type="object" 
+                                        string="📊 Generate Spreadsheet" 
+                                        class="btn-success btn-lg me-2"
+                                        icon="fa-table"
+                                        invisible="not criteria_loaded"
+                                        help="Create OCA Spreadsheet for editing"/>
+                                
+                                <button name="action_open_spreadsheet" 
+                                        type="object" 
+                                        string="📄 Open Spreadsheet" 
+                                        class="btn-info btn-lg"
+                                        icon="fa-external-link"
+                                        invisible="not spreadsheet_id"
+                                        help="Open existing spreadsheet"/>
+                            </div>
+                        </group>
+                        
+                        <!-- Success message when loaded -->
+                        <group colspan="2" invisible="not criteria_loaded">
+                            <div class="alert alert-success" role="alert">
+                                <i class="fa fa-check-circle"/> 
+                                <strong>Criteria loaded successfully!</strong> 
+                                Edit actual values below or generate a spreadsheet.
+                            </div>
+                        </group>
                     </group>
                     
-                    <!-- Appraisal Result Summary Section -->
-                    <group string="APPRAISAL RESULT SUMMARY" name="result_summary">
+                    <!-- OKR Criteria Tables - Separated by Type -->
+                    <div invisible="appraisal_template_type != 'okr' or not criteria_loaded">
+                        <!-- Overall Score -->
                         <group>
-                            <field name="final_percentage" readonly="1"/>
-                            <field name="final_rating" readonly="1"/>
-                            <field name="result_id" readonly="1" string="Appraisal Result"/>
+                            <group colspan="2">
+                                <field name="total_okr_score" readonly="1" string="Total OKR Score"
+                                       widget="progressbar" 
+                                       options="{'max_value': 100}"/>
+                            </group>
+                        </group>
+                        
+                        <!-- Department Criteria Table -->
+                        <group string="🏢 Department Criteria" invisible="not has_dept_okr">
+                            <field name="okr_dept_line_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" 
+                                      decoration-success="achievement_percentage >= 100"
+                                      decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                                      decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                                      decoration-danger="achievement_percentage &lt; 70"
+                                      delete="0" create="0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="objective_breakdown" readonly="1"/>
+                                    <field name="priority" readonly="1" optional="show"/>
+                                    <field name="metric" readonly="1" optional="show"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="actual_value"/>
+                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                                    <field name="weightage" readonly="1"/>
+                                    <field name="weighted_score" readonly="1" sum="Department Total"/>
+                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="line_type" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+                        
+                        <!-- Role Criteria Table -->
+                        <group string="👤 Role Criteria" invisible="not has_role_okr">
+                            <field name="okr_role_line_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" 
+                                      decoration-success="achievement_percentage >= 100"
+                                      decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                                      decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                                      decoration-danger="achievement_percentage &lt; 70"
+                                      delete="0" create="0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="objective_breakdown" readonly="1"/>
+                                    <field name="priority" readonly="1" optional="show"/>
+                                    <field name="metric" readonly="1" optional="show"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="actual_value"/>
+                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                                    <field name="weightage" readonly="1"/>
+                                    <field name="weighted_score" readonly="1" sum="Role Total"/>
+                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="line_type" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+                        
+                        <!-- Common Criteria Table -->
+                        <group string="🌐 Common Criteria" invisible="not has_common_okr">
+                            <field name="okr_common_line_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" 
+                                      decoration-success="achievement_percentage >= 100"
+                                      decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                                      decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                                      decoration-danger="achievement_percentage &lt; 70"
+                                      delete="0" create="0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="objective_breakdown" readonly="1"/>
+                                    <field name="priority" readonly="1" optional="show"/>
+                                    <field name="metric" readonly="1" optional="show"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="actual_value"/>
+                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                                    <field name="weightage" readonly="1"/>
+                                    <field name="weighted_score" readonly="1" sum="Common Total"/>
+                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="line_type" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+                    </div>
+                    
+                    <!-- 9-Box Performance Criteria Tables - Separated by Type -->
+                    <div invisible="appraisal_template_type != 'ninebox' or not criteria_loaded">
+                        <!-- Overall Performance Score -->
+                        <group>
+                            <group colspan="2">
+                                <field name="total_performance_score" readonly="1" string="Total Performance Score"
+                                       widget="progressbar" 
+                                       options="{'max_value': 100}"/>
+                            </group>
+                        </group>
+                        
+                        <!-- Department Performance Table -->
+                        <group string="🏢 Department Performance Criteria" invisible="not has_dept_performance">
+                            <field name="ninebox_perf_dept_line_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" 
+                                      decoration-success="achievement_percentage >= 100"
+                                      decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                                      decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                                      decoration-danger="achievement_percentage &lt; 70"
+                                      delete="0" create="0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="objective_breakdown" readonly="1"/>
+                                    <field name="priority" readonly="1" optional="show"/>
+                                    <field name="metric" readonly="1" optional="show"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="actual_value"/>
+                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                                    <field name="weightage" readonly="1"/>
+                                    <field name="weighted_score" readonly="1" sum="Department Total"/>
+                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="line_type" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+                        
+                        <!-- Role Performance Table -->
+                        <group string="👤 Role Performance Criteria" invisible="not has_role_performance">
+                            <field name="ninebox_perf_role_line_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" 
+                                      decoration-success="achievement_percentage >= 100"
+                                      decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                                      decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                                      decoration-danger="achievement_percentage &lt; 70"
+                                      delete="0" create="0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="objective_breakdown" readonly="1"/>
+                                    <field name="priority" readonly="1" optional="show"/>
+                                    <field name="metric" readonly="1" optional="show"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="actual_value"/>
+                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                                    <field name="weightage" readonly="1"/>
+                                    <field name="weighted_score" readonly="1" sum="Role Total"/>
+                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="line_type" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+                        
+                        <!-- Common Performance Table -->
+                        <group string="🌐 Common Performance Criteria" invisible="not has_common_performance">
+                            <field name="ninebox_perf_common_line_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" 
+                                      decoration-success="achievement_percentage >= 100"
+                                      decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                                      decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                                      decoration-danger="achievement_percentage &lt; 70"
+                                      delete="0" create="0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="objective_breakdown" readonly="1"/>
+                                    <field name="priority" readonly="1" optional="show"/>
+                                    <field name="metric" readonly="1" optional="show"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="actual_value"/>
+                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                                    <field name="weightage" readonly="1"/>
+                                    <field name="weighted_score" readonly="1" sum="Common Total"/>
+                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="line_type" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+                        
+                        <!-- Separator -->
+                        <separator string="Potential Criteria" colspan="2"/>
+                        
+                        <!-- Overall Potential Score -->
+                        <group>
+                            <group colspan="2">
+                                <field name="total_potential_score" readonly="1" string="Total Potential Score"
+                                       widget="progressbar" 
+                                       options="{'max_value': 100}"/>
+                            </group>
+                        </group>
+                        
+                        <!-- Department Potential Table -->
+                        <group string="🏢 Department Potential Criteria" invisible="not has_dept_potential">
+                            <field name="ninebox_pot_dept_line_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" 
+                                      decoration-success="achievement_percentage >= 100"
+                                      decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                                      decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                                      decoration-danger="achievement_percentage &lt; 70"
+                                      delete="0" create="0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="objective_breakdown" readonly="1"/>
+                                    <field name="priority" readonly="1" optional="show"/>
+                                    <field name="metric" readonly="1" optional="show"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="actual_value"/>
+                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                                    <field name="weightage" readonly="1"/>
+                                    <field name="weighted_score" readonly="1" sum="Department Total"/>
+                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="line_type" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+                        
+                        <!-- Role Potential Table -->
+                        <group string="👤 Role Potential Criteria" invisible="not has_role_potential">
+                            <field name="ninebox_pot_role_line_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" 
+                                      decoration-success="achievement_percentage >= 100"
+                                      decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                                      decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                                      decoration-danger="achievement_percentage &lt; 70"
+                                      delete="0" create="0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="objective_breakdown" readonly="1"/>
+                                    <field name="priority" readonly="1" optional="show"/>
+                                    <field name="metric" readonly="1" optional="show"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="actual_value"/>
+                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                                    <field name="weightage" readonly="1"/>
+                                    <field name="weighted_score" readonly="1" sum="Role Total"/>
+                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="line_type" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+                        
+                        <!-- Common Potential Table -->
+                        <group string="🌐 Common Potential Criteria" invisible="not has_common_potential">
+                            <field name="ninebox_pot_common_line_ids" nolabel="1" colspan="2">
+                                <list editable="bottom" 
+                                      decoration-success="achievement_percentage >= 100"
+                                      decoration-info="achievement_percentage >= 90 and achievement_percentage &lt; 100"
+                                      decoration-warning="achievement_percentage >= 70 and achievement_percentage &lt; 90"
+                                      decoration-danger="achievement_percentage &lt; 70"
+                                      delete="0" create="0">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="objective_breakdown" readonly="1"/>
+                                    <field name="priority" readonly="1" optional="show"/>
+                                    <field name="metric" readonly="1" optional="show"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="actual_value"/>
+                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
+                                    <field name="weightage" readonly="1"/>
+                                    <field name="weighted_score" readonly="1" sum="Common Total"/>
+                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="line_type" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </group>
+                    </div>
+                    
+                    <!-- Performance Summary Section -->
+                    <group string="🎯 Performance Summary" invisible="not criteria_loaded">
+                        <group>
+                            <field name="final_score" 
+                                   widget="gauge" 
+                                   options="{'max_value': 100, 'style': 'width:160px; height: 120px;'}"/>
+                        </group>
+                        <group>
+                            <field name="performance_rating" 
+                                   widget="badge"
+                                   decoration-success="performance_rating == 'outstanding'"
+                                   decoration-info="performance_rating == 'exceeds'"
+                                   decoration-primary="performance_rating == 'meets'"
+                                   decoration-warning="performance_rating == 'needs_improvement'"
+                                   decoration-danger="performance_rating == 'unsatisfactory'"/>
                         </group>
                     </group>
                 </page>
@@ -166,10 +508,7 @@
         </field>
     </record>
 
-    <!-- ============================================ -->
-    <!-- INHERIT hr.appraisal LIST/TREE VIEW -->
-    <!-- Add template info column -->
-    <!-- ============================================ -->
+    <!-- Tree View Updates remain the same -->
     <record id="view_hr_appraisal_tree_inherit_template" model="ir.ui.view">
         <field name="name">hr.appraisal.tree.inherit.template</field>
         <field name="model">hr.appraisal</field>
@@ -185,26 +524,31 @@
                        decoration-warning="appraisal_template_type == 'ninebox'"
                        optional="show"
                        string="Template Type"/>
+                <field name="final_score" optional="show" string="Score"/>
+                <field name="performance_rating" optional="show" 
+                       widget="badge"
+                       decoration-success="performance_rating == 'outstanding'"
+                       decoration-info="performance_rating == 'exceeds'"
+                       decoration-primary="performance_rating == 'meets'"
+                       decoration-warning="performance_rating == 'needs_improvement'"
+                       decoration-danger="performance_rating == 'unsatisfactory'"/>
                 <field name="selected_template_display" optional="hide" string="Template"/>
             </xpath>
         </field>
     </record>
 
-    <!-- ============================================ -->
-    <!-- INHERIT hr.appraisal KANBAN VIEW -->
-    <!-- Add template badge -->
-    <!-- ============================================ -->
+    <!-- Kanban and Search views remain the same -->
     <record id="view_hr_appraisal_kanban_inherit_template" model="ir.ui.view">
         <field name="name">hr.appraisal.kanban.inherit.template</field>
         <field name="model">hr.appraisal</field>
         <field name="inherit_id" ref="oh_appraisal.hr_appraisal_view_kanban"/>
         <field name="arch" type="xml">
-            <!-- Add field to kanban -->
             <xpath expr="//kanban/field[@name='stage_id']" position="after">
                 <field name="appraisal_template_type"/>
+                <field name="final_score"/>
+                <field name="performance_rating"/>
             </xpath>
             
-            <!-- Add template badge in kanban card after employee name -->
             <xpath expr="//div[@class='oe_kanban_content']/div[1]/strong" position="after">
                 <div class="mt-1">
                     <span t-if="record.appraisal_template_type.raw_value == 'okr'" 
@@ -213,15 +557,14 @@
                           class="badge text-bg-warning">9-Box</span>
                     <span t-if="record.appraisal_template_type.raw_value == 'survey'" 
                           class="badge text-bg-info">Survey</span>
+                    <span t-if="record.final_score.raw_value" class="badge text-bg-primary ms-2">
+                        Score: <t t-esc="record.final_score.value"/>%
+                    </span>
                 </div>
             </xpath>
         </field>
     </record>
 
-    <!-- ============================================ -->
-    <!-- CREATE SEARCH VIEW for hr.appraisal -->
-    <!-- (oh_appraisal doesn't have one, so we create it) -->
-    <!-- ============================================ -->
     <record id="view_hr_appraisal_search_template" model="ir.ui.view">
         <field name="name">hr.appraisal.search.template</field>
         <field name="model">hr.appraisal</field>
@@ -244,6 +587,14 @@
                         domain="[('appraisal_template_type', '=', 'ninebox')]"/>
                 
                 <separator/>
+                <filter string="Criteria Loaded" 
+                        name="filter_criteria_loaded"
+                        domain="[('criteria_loaded', '=', True)]"/>
+                <filter string="Outstanding Performance" 
+                        name="filter_outstanding"
+                        domain="[('performance_rating', '=', 'outstanding')]"/>
+                
+                <separator/>
                 <filter string="My Appraisals" 
                         name="filter_my_appraisals"
                         domain="[('employee_id.user_id', '=', uid)]"/>
@@ -255,15 +606,12 @@
                     <filter string="Template Type" 
                             name="group_template_type" 
                             context="{'group_by': 'appraisal_template_type'}"/>
+                    <filter string="Performance Rating" 
+                            name="group_rating" 
+                            context="{'group_by': 'performance_rating'}"/>
                     <filter string="Stage" 
                             name="group_stage" 
                             context="{'group_by': 'stage_id'}"/>
-                    <filter string="OKR Template" 
-                            name="group_okr" 
-                            context="{'group_by': 'okr_template_id'}"/>
-                    <filter string="9-Box Template" 
-                            name="group_ninebox" 
-                            context="{'group_by': 'ninebox_template_id'}"/>
                 </group>
             </search>
         </field>
