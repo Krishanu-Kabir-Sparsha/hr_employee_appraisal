@@ -76,6 +76,14 @@ class HrAppraisalInherit(models.Model):
     ], string='Appraisal Type', default='survey',
        help="Select the type of appraisal template to use")
     
+    # Survey selection (from survey module)
+    survey_id = fields.Many2one(
+        'survey.survey',
+        string='Select Appraisal Form',
+        domain="[('active', '=', True)]",
+        help="Select a survey form for this appraisal"
+    )
+    
     evaluation_type_ids = fields.Many2many(
         'appraisal.evaluation.type',
         string='Evaluation Types',
@@ -253,10 +261,13 @@ class HrAppraisalInherit(models.Model):
         if self.appraisal_template_type == 'survey':
             self.okr_template_id = False
             self.ninebox_template_id = False
+            # Keep survey_id, don't clear it
         elif self.appraisal_template_type == 'okr':
             self.ninebox_template_id = False
+            self.survey_id = False
         elif self.appraisal_template_type == 'ninebox':
             self.okr_template_id = False
+            self.survey_id = False
     
     @api.onchange('okr_template_id')
     def _onchange_okr_template(self):
@@ -277,6 +288,7 @@ class HrAppraisalInherit(models.Model):
         """Clear template selections when employee changes"""
         self.okr_template_id = False
         self.ninebox_template_id = False
+        self.survey_id = False
         if self.appraisal_template_type in ('okr', 'ninebox'):
             self.appraisal_template_type = 'survey'
     

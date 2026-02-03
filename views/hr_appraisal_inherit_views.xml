@@ -10,6 +10,11 @@
         <field name="inherit_id" ref="oh_appraisal.hr_appraisal_view_form"/>
         <field name="arch" type="xml">
             
+            <!-- Hide the Plan tab -->
+            <xpath expr="//notebook/page[2]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            
             <!-- Add Badge ID field BEFORE employee_id label -->
             <xpath expr="//label[@for='employee_id']" position="before">
                 <label for="employee_badge_id" string="Employee Badge ID"/>
@@ -80,8 +85,8 @@
                             </div>
                         </group>
                         
-                        <!-- No templates message -->
-                        <group colspan="2" invisible="not no_templates_message">
+                        <!-- No templates message (only for OKR/9-Box) -->
+                        <group colspan="2" invisible="not no_templates_message or appraisal_template_type == 'survey'">
                             <div class="alert alert-warning" role="alert">
                                 <i class="fa fa-info-circle"/> 
                                 <field name="no_templates_message" nolabel="1" readonly="1"/>
@@ -91,6 +96,14 @@
                         <group colspan="2">
                             <field name="appraisal_template_type" widget="radio" 
                                    options="{'horizontal': true}"/>
+                        </group>
+                        
+                        <!-- Survey Form Selection -->
+                        <group colspan="2" invisible="appraisal_template_type != 'survey'">
+                            <field name="survey_id" 
+                                   options="{'no_create': True, 'no_edit': True}"
+                                   placeholder="Select a survey form..."
+                                   required="appraisal_template_type == 'survey'"/>
                         </group>
                         
                         <!-- OKR Template Selection -->
@@ -129,7 +142,7 @@
                             </div>
                         </group>
                         
-                        <!-- Evaluation Type Selection - Many2many -->
+                        <!-- Evaluation Type Selection - Many2many (only for OKR/9-Box) -->
                         <group colspan="2" invisible="appraisal_template_type == 'survey' or (not okr_template_id and not ninebox_template_id)">
                             <field name="evaluation_type_ids" widget="many2many_tags"
                                    options="{'color_field': 'sequence', 'no_create': True}"
@@ -152,7 +165,7 @@
                                    class="text-primary fw-bold"/>
                         </group>
                         
-                        <!-- Action Buttons -->
+                        <!-- Action Buttons (only for OKR/9-Box) -->
                         <group colspan="2" invisible="appraisal_template_type == 'survey' or (not okr_template_id and not ninebox_template_id) or not evaluation_type_ids">
                             <div class="mb-3">
                                 <button name="action_load_criteria" 
@@ -181,8 +194,8 @@
                             </div>
                         </group>
                         
-                        <!-- Success message when loaded -->
-                        <group colspan="2" invisible="not criteria_loaded">
+                        <!-- Success message when loaded (only for OKR/9-Box) -->
+                        <group colspan="2" invisible="not criteria_loaded or appraisal_template_type == 'survey'">
                             <div class="alert alert-success" role="alert">
                                 <i class="fa fa-check-circle"/> 
                                 <strong>Criteria loaded successfully!</strong> 
@@ -213,14 +226,14 @@
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1" optional="show"/>
-                                    <field name="metric" readonly="1" optional="show"/>
-                                    <field name="target_value" readonly="1"/>
+                                    <field name="priority" readonly="1"/>
+                                    <field name="team_id" readonly="1" string="Team"/>
+                                    <field name="metric" readonly="1"/>
                                     <field name="actual_value"/>
-                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                                    <field name="weightage" readonly="1"/>
-                                    <field name="weighted_score" readonly="1" sum="Department Total"/>
-                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
+                                    <field name="achievement_percentage" column_invisible="1"/>
+                                    <field name="weighted_score" column_invisible="1"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -237,14 +250,14 @@
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1" optional="show"/>
-                                    <field name="metric" readonly="1" optional="show"/>
-                                    <field name="target_value" readonly="1"/>
+                                    <field name="priority" readonly="1"/>
+                                    <field name="team_id" readonly="1" string="Team"/>
+                                    <field name="metric" readonly="1"/>
                                     <field name="actual_value"/>
-                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                                    <field name="weightage" readonly="1"/>
-                                    <field name="weighted_score" readonly="1" sum="Role Total"/>
-                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
+                                    <field name="achievement_percentage" column_invisible="1"/>
+                                    <field name="weighted_score" column_invisible="1"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -261,14 +274,14 @@
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1" optional="show"/>
-                                    <field name="metric" readonly="1" optional="show"/>
-                                    <field name="target_value" readonly="1"/>
+                                    <field name="priority" readonly="1"/>
+                                    <field name="team_id" readonly="1" string="Team"/>
+                                    <field name="metric" readonly="1"/>
                                     <field name="actual_value"/>
-                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                                    <field name="weightage" readonly="1"/>
-                                    <field name="weighted_score" readonly="1" sum="Common Total"/>
-                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
+                                    <field name="achievement_percentage" column_invisible="1"/>
+                                    <field name="weighted_score" column_invisible="1"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -297,14 +310,14 @@
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1" optional="show"/>
-                                    <field name="metric" readonly="1" optional="show"/>
-                                    <field name="target_value" readonly="1"/>
+                                    <field name="priority" readonly="1"/>
+                                    <field name="team_id" readonly="1" string="Team"/>
+                                    <field name="metric" readonly="1"/>
                                     <field name="actual_value"/>
-                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                                    <field name="weightage" readonly="1"/>
-                                    <field name="weighted_score" readonly="1" sum="Department Total"/>
-                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
+                                    <field name="achievement_percentage" column_invisible="1"/>
+                                    <field name="weighted_score" column_invisible="1"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -321,14 +334,14 @@
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1" optional="show"/>
-                                    <field name="metric" readonly="1" optional="show"/>
-                                    <field name="target_value" readonly="1"/>
+                                    <field name="priority" readonly="1"/>
+                                    <field name="team_id" readonly="1" string="Team"/>
+                                    <field name="metric" readonly="1"/>
                                     <field name="actual_value"/>
-                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                                    <field name="weightage" readonly="1"/>
-                                    <field name="weighted_score" readonly="1" sum="Role Total"/>
-                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
+                                    <field name="achievement_percentage" column_invisible="1"/>
+                                    <field name="weighted_score" column_invisible="1"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -345,14 +358,14 @@
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1" optional="show"/>
-                                    <field name="metric" readonly="1" optional="show"/>
-                                    <field name="target_value" readonly="1"/>
+                                    <field name="priority" readonly="1"/>
+                                    <field name="team_id" readonly="1" string="Team"/>
+                                    <field name="metric" readonly="1"/>
                                     <field name="actual_value"/>
-                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                                    <field name="weightage" readonly="1"/>
-                                    <field name="weighted_score" readonly="1" sum="Common Total"/>
-                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
+                                    <field name="achievement_percentage" column_invisible="1"/>
+                                    <field name="weighted_score" column_invisible="1"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -381,14 +394,14 @@
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1" optional="show"/>
-                                    <field name="metric" readonly="1" optional="show"/>
-                                    <field name="target_value" readonly="1"/>
+                                    <field name="priority" readonly="1"/>
+                                    <field name="team_id" readonly="1" string="Team"/>
+                                    <field name="metric" readonly="1"/>
                                     <field name="actual_value"/>
-                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                                    <field name="weightage" readonly="1"/>
-                                    <field name="weighted_score" readonly="1" sum="Department Total"/>
-                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
+                                    <field name="achievement_percentage" column_invisible="1"/>
+                                    <field name="weighted_score" column_invisible="1"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -405,14 +418,14 @@
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1" optional="show"/>
-                                    <field name="metric" readonly="1" optional="show"/>
-                                    <field name="target_value" readonly="1"/>
+                                    <field name="priority" readonly="1"/>
+                                    <field name="team_id" readonly="1" string="Team"/>
+                                    <field name="metric" readonly="1"/>
                                     <field name="actual_value"/>
-                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                                    <field name="weightage" readonly="1"/>
-                                    <field name="weighted_score" readonly="1" sum="Role Total"/>
-                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
+                                    <field name="achievement_percentage" column_invisible="1"/>
+                                    <field name="weighted_score" column_invisible="1"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -429,22 +442,22 @@
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
                                     <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1" optional="show"/>
-                                    <field name="metric" readonly="1" optional="show"/>
-                                    <field name="target_value" readonly="1"/>
+                                    <field name="priority" readonly="1"/>
+                                    <field name="team_id" readonly="1" string="Team"/>
+                                    <field name="metric" readonly="1"/>
                                     <field name="actual_value"/>
-                                    <field name="achievement_percentage" widget="progressbar" readonly="1"/>
-                                    <field name="weightage" readonly="1"/>
-                                    <field name="weighted_score" readonly="1" sum="Common Total"/>
-                                    <field name="team_id" readonly="1" optional="hide"/>
+                                    <field name="target_value" readonly="1"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
+                                    <field name="achievement_percentage" column_invisible="1"/>
+                                    <field name="weighted_score" column_invisible="1"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
                         </group>
                     </div>
                     
-                    <!-- Performance Summary Section -->
-                    <group string="🎯 Performance Summary" invisible="not criteria_loaded">
+                    <!-- Performance Summary Section (only for OKR/9-Box) -->
+                    <group string="🎯 Performance Summary" invisible="not criteria_loaded or appraisal_template_type == 'survey'">
                         <group>
                             <field name="final_score" 
                                    widget="gauge" 

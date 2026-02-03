@@ -25,6 +25,7 @@
         'oh_appraisal_ext',
         'oh_9_box',
         'spreadsheet_oca',
+        'survey',
     ],
     'data': [
         'security/ir.model.access.csv',
