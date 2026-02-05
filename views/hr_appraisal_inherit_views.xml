@@ -14,6 +14,10 @@
             <xpath expr="//notebook/page[2]" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
+            <!-- Hide the original "Start Appraisal And Send Forms" button -->
+            <xpath expr="//button[@name='action_start_appraisal']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
             
             <!-- Add Badge ID field BEFORE employee_id label -->
             <xpath expr="//label[@for='employee_id']" position="before">
@@ -29,6 +33,18 @@
             
             <!-- Add Smart Buttons in button_box -->
             <xpath expr="//div[@name='button_box']" position="inside">
+                
+                <!-- Related Appraisals Smart Button -->
+                <button name="action_view_related_appraisals" 
+                        type="object" 
+                        class="oe_stat_button" 
+                        icon="fa-link"
+                        invisible="not has_related_appraisals">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Related Appraisals</span>
+                    </div>
+                </button>
+                
                 <button name="action_open_spreadsheet" 
                         type="object" 
                         class="oe_stat_button" 
@@ -60,6 +76,8 @@
                     <field name="has_okr_templates" invisible="1"/>
                     <field name="has_ninebox_templates" invisible="1"/>
                     <field name="criteria_loaded" invisible="1"/>
+                    <field name="okr_criteria_loaded" invisible="1"/>
+                    <field name="ninebox_criteria_loaded" invisible="1"/>
                     
                     <!-- Hidden helper fields for line type existence -->
                     <field name="has_dept_okr" invisible="1"/>
@@ -73,6 +91,29 @@
                     <field name="has_common_potential" invisible="1"/>
                     
                     <group string="📋 Assessment Template Configuration" name="template_config">
+                        <!-- Warning when trying to switch after loading -->
+                        <group colspan="2" invisible="not criteria_loaded">
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fa fa-exclamation-triangle"/> 
+                                <strong>Note:</strong> Criteria has been loaded for this appraisal. 
+                                To create a different type of appraisal, please save this record and create a new one.
+                            </div>
+                        </group>
+                        
+                        <!-- Show related appraisals if any -->
+                        <group colspan="2" invisible="not has_related_appraisals">
+                            <field name="has_related_appraisals" invisible="1"/>
+                            <div class="alert alert-info" role="alert">
+                                <i class="fa fa-link"/> 
+                                <strong>Related Appraisals:</strong> This employee has other appraisal(s) for different assessment types.
+                                <button name="action_view_related_appraisals" 
+                                        type="object" 
+                                        string="View Related" 
+                                        class="btn-link"
+                                        icon="fa-external-link"/>
+                            </div>
+                        </group>
+
                         <!-- Show employee's teams info -->
                         <group colspan="2" invisible="not employee_id">
                             <div class="alert alert-info" role="alert" invisible="not employee_team_ids">
@@ -94,8 +135,10 @@
                         </group>
                         
                         <group colspan="2">
-                            <field name="appraisal_template_type" widget="radio" 
-                                   options="{'horizontal': true}"/>
+                            <field name="appraisal_template_type" 
+                                   widget="radio" 
+                                   options="{'horizontal': true}"
+                                   readonly="criteria_loaded"/>
                         </group>
                         
                         <!-- Survey Form Selection -->
@@ -104,6 +147,17 @@
                                    options="{'no_create': True, 'no_edit': True}"
                                    placeholder="Select a survey form..."
                                    required="appraisal_template_type == 'survey'"/>
+                            
+                            <!-- Start Appraisal button for Survey mode -->
+                            <div class="mt-2">
+                                <button name="action_start_appraisal"
+                                        string="Start Appraisal"
+                                        type="object"
+                                        class="btn-primary btn-lg"
+                                        icon="fa-play"
+                                        invisible="check_sent == True or check_done == True or check_cancel == True"
+                                        help="Start the appraisal process and send survey forms"/>
+                            </div>
                         </group>
                         
                         <!-- OKR Template Selection -->
@@ -170,9 +224,9 @@
                             <div class="mb-3">
                                 <button name="action_load_criteria" 
                                         type="object" 
-                                        string="📥 Load Criteria from Template" 
+                                        string="Start Appraisal" 
                                         class="btn-primary btn-lg me-2"
-                                        icon="fa-download"
+                                        icon="fa-play"
                                         invisible="criteria_loaded"
                                         help="Load criteria from selected template"/>
                                 
@@ -181,7 +235,7 @@
                                         string="📊 Generate Spreadsheet" 
                                         class="btn-success btn-lg me-2"
                                         icon="fa-table"
-                                        invisible="not criteria_loaded"
+                                        invisible="not criteria_loaded or spreadsheet_id"
                                         help="Create OCA Spreadsheet for editing"/>
                                 
                                 <button name="action_open_spreadsheet" 
@@ -536,7 +590,9 @@
                        decoration-success="appraisal_template_type == 'okr'"
                        decoration-warning="appraisal_template_type == 'ninebox'"
                        optional="show"
-                       string="Template Type"/>
+                       string="Type"/>
+                <field name="selected_template_display" optional="show" string="Template"/>
+                <field name="criteria_loaded" optional="hide" widget="boolean" string="Loaded"/>
                 <field name="final_score" optional="show" string="Score"/>
                 <field name="performance_rating" optional="show" 
                        widget="badge"
@@ -545,7 +601,6 @@
                        decoration-primary="performance_rating == 'meets'"
                        decoration-warning="performance_rating == 'needs_improvement'"
                        decoration-danger="performance_rating == 'unsatisfactory'"/>
-                <field name="selected_template_display" optional="hide" string="Template"/>
             </xpath>
         </field>
     </record>

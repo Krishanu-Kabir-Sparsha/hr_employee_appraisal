@@ -76,6 +76,39 @@ class HrAppraisalInherit(models.Model):
     ], string='Appraisal Type', default='survey',
        help="Select the type of appraisal template to use")
     
+    # Link related appraisals
+    appraisal_group_id = fields.Char(
+        'Appraisal Group ID',
+        help="Groups related appraisals for the same employee/period"
+    )
+    
+    related_appraisal_ids = fields.One2many(
+        'hr.appraisal',
+        compute='_compute_related_appraisals',
+        string='Related Appraisals'
+    )
+    
+    has_related_appraisals = fields.Boolean(
+        compute='_compute_related_appraisals',
+        string='Has Related Appraisals'
+    )
+
+    @api.depends('employee_id', 'appraisal_group_id')
+    def _compute_related_appraisals(self):
+        """Find other appraisals in the same group"""
+        for record in self:
+            if record.appraisal_group_id and record.employee_id:
+                related = self.env['hr.appraisal'].search([
+                    ('appraisal_group_id', '=', record.appraisal_group_id),
+                    ('employee_id', '=', record.employee_id.id),
+                    ('id', '!=', record.id)
+                ])
+                record.related_appraisal_ids = related
+                record.has_related_appraisals = bool(related)
+            else:
+                record.related_appraisal_ids = False
+                record.has_related_appraisals = False
+    
     # Survey selection (from survey module)
     survey_id = fields.Many2one(
         'survey.survey',
@@ -257,10 +290,97 @@ class HrAppraisalInherit(models.Model):
     
     @api.onchange('appraisal_template_type')
     def _onchange_appraisal_template_type(self):
-        """Don't clear selections - just let invisible attributes handle visibility"""
-        # Do nothing - preserve all template selections
-        # The view's invisible attributes will handle showing/hiding the right fields
-        pass
+        """Handle switching appraisal types - create new record if needed"""
+        # Check if we're switching from a loaded type
+        if self._origin.appraisal_template_type and self._origin.appraisal_template_type != self.appraisal_template_type:
+            # Switching types
+            if self._origin.criteria_loaded:
+                # Criteria was loaded for previous type
+                # We need to create a new record
+                return {
+                    'warning': {
+                        'title': _('Create New Appraisal'),
+                        'message': _(
+                            'You have already loaded criteria for %s appraisal. '
+                            'To create a %s appraisal, please save this record first, '
+                            'then create a new appraisal from the Appraisal menu.'
+                        ) % (
+                            dict(self._fields['appraisal_template_type'].selection).get(self._origin.appraisal_template_type),
+                            dict(self._fields['appraisal_template_type'].selection).get(self.appraisal_template_type)
+                        ),
+                    }
+                }
+        
+        # Update the general criteria_loaded flag based on the selected type
+        if self.appraisal_template_type == 'okr':
+            self.criteria_loaded = self.okr_criteria_loaded
+        elif self.appraisal_template_type == 'ninebox':
+            self.criteria_loaded = self.ninebox_criteria_loaded
+        elif self.appraisal_template_type == 'survey':
+            self.criteria_loaded = False
+        
+        # Clear evaluation types when switching
+        if self.appraisal_template_type != self._origin.appraisal_template_type:
+            self.evaluation_type_ids = False
+
+    def action_switch_type_and_create(self):
+        """Switch type and create a new appraisal record"""
+        self.ensure_one()
+        
+        # Save current record first
+        if not self.id or isinstance(self.id, models.NewId):
+            self.ensure_one()
+            # Will be saved automatically
+        
+        # Get the target type from context
+        target_type = self._context.get('target_appraisal_type')
+        if not target_type:
+            raise UserError(_('Target appraisal type not specified'))
+        
+        # Create new appraisal for the target type
+        new_vals = {
+            'employee_id': self.employee_id.id,
+            'employee_badge_id': self.employee_badge_id.id if self.employee_badge_id else False,
+            'appraisal_deadline': self.appraisal_deadline,
+            'appraisal_group_id': self.appraisal_group_id or self._generate_group_id(),
+            'appraisal_template_type': target_type,
+            'stage_id': self.stage_id.id if self.stage_id else False,
+        }
+        
+        new_appraisal = self.create(new_vals)
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('New %s Appraisal') % dict(self._fields['appraisal_template_type'].selection).get(target_type),
+            'res_model': 'hr.appraisal',
+            'res_id': new_appraisal.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+    
+    def _generate_group_id(self):
+        """Generate a unique group ID for linking related appraisals"""
+        import uuid
+        return str(uuid.uuid4())
+    
+    def action_view_related_appraisals(self):
+        """Open related appraisals in the same group"""
+        self.ensure_one()
+        
+        related = self.env['hr.appraisal'].search([
+            ('appraisal_group_id', '=', self.appraisal_group_id),
+            ('employee_id', '=', self.employee_id.id),
+            ('id', '!=', self.id)
+        ])
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Related Appraisals for %s') % self.employee_id.name,
+            'res_model': 'hr.appraisal',
+            'view_mode': 'tree,form',
+            'domain': [('id', 'in', related.ids)],
+            'context': {'create': False},
+        }
     
     # @api.onchange('okr_template_id')
     # def _onchange_okr_template(self):
@@ -301,16 +421,22 @@ class HrAppraisalInherit(models.Model):
     def _clear_template_selections(self):
         """Clear template selections when employee changes"""
         # Only clear if explicitly needed (e.g., employee change)
-        # Don't clear when just switching appraisal types
         if self._context.get('clear_all_templates'):
             self.okr_template_id = False
             self.ninebox_template_id = False
             self.survey_id = False
-            # Also clear criteria lines
+            self.evaluation_type_ids = False
+            
+            # Clear all criteria lines
             self.okr_line_ids.unlink()
             self.ninebox_performance_line_ids.unlink()
             self.ninebox_potential_line_ids.unlink()
+            
+            # Reset all criteria loaded flags
             self.criteria_loaded = False
+            self.okr_criteria_loaded = False
+            self.ninebox_criteria_loaded = False
+            
             if self.appraisal_template_type in ('okr', 'ninebox'):
                 self.appraisal_template_type = 'survey'
     
@@ -514,6 +640,10 @@ class HrAppraisalInherit(models.Model):
     
     # ============ SCORES & CALCULATIONS ============
     criteria_loaded = fields.Boolean('Criteria Loaded', default=False)
+
+    # Track which type has loaded criteria
+    okr_criteria_loaded = fields.Boolean('OKR Criteria Loaded', default=False)
+    ninebox_criteria_loaded = fields.Boolean('9-Box Criteria Loaded', default=False)
     
     total_okr_score = fields.Float(
         'Total OKR Score',
@@ -603,7 +733,7 @@ class HrAppraisalInherit(models.Model):
     # Add these action methods
     
     def action_load_criteria(self):
-        """Load criteria from selected template"""
+        """Load criteria from selected template and auto-save/reload the record"""
         self.ensure_one()
         
         if not self.employee_id:
@@ -614,17 +744,63 @@ class HrAppraisalInherit(models.Model):
         
         if self.appraisal_template_type == 'okr' and self.okr_template_id:
             self._load_okr_criteria()
+            self.okr_criteria_loaded = True
         elif self.appraisal_template_type == 'ninebox' and self.ninebox_template_id:
             self._load_ninebox_criteria()
+            self.ninebox_criteria_loaded = True
         else:
             raise UserError(_('Please select a template first.'))
         
         self.criteria_loaded = True
         
-        # Auto-refresh the view
+        # Generate appraisal group ID if not exists
+        if not self.appraisal_group_id:
+            import uuid
+            self.appraisal_group_id = str(uuid.uuid4())
+        
+        # Force save the record (this commits the changes to database)
+        if self.id and not isinstance(self.id, models.NewId):
+            # Existing record - just reload
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'reload',
+            }
+        else:
+            # New record - the record will be auto-saved when method completes
+            # Just return reload action
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'reload',
+            }
+    
+    def action_create_new_type_appraisal(self):
+        """Create a new appraisal record when switching types after loading"""
+        self.ensure_one()
+        
+        if not self.criteria_loaded:
+            # No criteria loaded yet, just switch type normally
+            return
+        
+        # Criteria already loaded, need to create new record
+        new_vals = {
+            'employee_id': self.employee_id.id,
+            'employee_badge_id': self.employee_badge_id.id if self.employee_badge_id else False,
+            'appraisal_deadline': self.appraisal_deadline,
+            'appraisal_group_id': self.appraisal_group_id,  # Link to same group
+            'appraisal_template_type': self.appraisal_template_type,
+            'stage_id': self.stage_id.id if self.stage_id else False,
+        }
+        
+        new_appraisal = self.create(new_vals)
+        
         return {
-            'type': 'ir.actions.client',
-            'tag': 'reload',
+            'type': 'ir.actions.act_window',
+            'name': _('New Appraisal'),
+            'res_model': 'hr.appraisal',
+            'res_id': new_appraisal.id,
+            'view_mode': 'form',
+            'view_type': 'form',
+            'target': 'current',
         }
     
     def _load_okr_criteria(self):
@@ -754,11 +930,18 @@ class HrAppraisalInherit(models.Model):
 
     @api.onchange('evaluation_type_ids')
     def _onchange_evaluation_type_ids(self):
-        """Clear criteria when evaluation types change"""
-        if self.criteria_loaded:
-            self.okr_line_ids.unlink()
-            self.ninebox_performance_line_ids.unlink()
-            self.ninebox_potential_line_ids.unlink()
+        """Clear criteria when evaluation types change after loading"""
+        if self.criteria_loaded and self._origin.evaluation_type_ids:
+            # If criteria were already loaded and evaluation types changed
+            # Clear the loaded criteria for current type
+            if self.appraisal_template_type == 'okr':
+                self.okr_line_ids.unlink()
+                self.okr_criteria_loaded = False
+            elif self.appraisal_template_type == 'ninebox':
+                self.ninebox_performance_line_ids.unlink()
+                self.ninebox_potential_line_ids.unlink()
+                self.ninebox_criteria_loaded = False
+            
             self.criteria_loaded = False
     
     def action_generate_spreadsheet(self):
