@@ -227,13 +227,13 @@ class HrAppraisalInherit(models.Model):
         if self.employee_badge_id and self.employee_badge_id.employee_id:
             self.employee_id = self.employee_badge_id.employee_id.id
             # Clear previous template selections as they may not be valid for new employee
-            self._clear_template_selections()
+            self.with_context(clear_all_templates=True)._clear_template_selections()
             # Auto-detect templates
             self._auto_detect_templates()
         elif not self.employee_badge_id:
             if not self.employee_id:
                 self.employee_id = False
-                self._clear_template_selections()
+                self.with_context(clear_all_templates=True)._clear_template_selections()
     
     @api.onchange('employee_id')
     def _onchange_employee_id_badge(self):
@@ -250,47 +250,69 @@ class HrAppraisalInherit(models.Model):
         elif not self.employee_id:
             self.employee_badge_id = False
         
-        # Clear previous template selections
-        self._clear_template_selections()
+        # Clear previous template selections when employee changes
+        self.with_context(clear_all_templates=True)._clear_template_selections()
         # Auto-detect available templates for this employee
         self._auto_detect_templates()
     
     @api.onchange('appraisal_template_type')
     def _onchange_appraisal_template_type(self):
-        """Clear template selections when type changes"""
-        if self.appraisal_template_type == 'survey':
-            self.okr_template_id = False
-            self.ninebox_template_id = False
-            # Keep survey_id, don't clear it
-        elif self.appraisal_template_type == 'okr':
-            self.ninebox_template_id = False
-            self.survey_id = False
-        elif self.appraisal_template_type == 'ninebox':
-            self.okr_template_id = False
-            self.survey_id = False
+        """Don't clear selections - just let invisible attributes handle visibility"""
+        # Do nothing - preserve all template selections
+        # The view's invisible attributes will handle showing/hiding the right fields
+        pass
+    
+    # @api.onchange('okr_template_id')
+    # def _onchange_okr_template(self):
+    #     """Update template type when OKR template selected"""
+    #     if self.okr_template_id:
+    #         self.appraisal_template_type = 'okr'
+    #         self.ninebox_template_id = False
+    
+    # @api.onchange('ninebox_template_id')
+    # def _onchange_ninebox_template(self):
+    #     """Update template type when 9-Box template selected"""
+    #     if self.ninebox_template_id:
+    #         self.appraisal_template_type = 'ninebox'
+    #         self.okr_template_id = False
     
     @api.onchange('okr_template_id')
     def _onchange_okr_template(self):
-        """Update template type when OKR template selected"""
+        """Auto-set template type when OKR template is selected"""
         if self.okr_template_id:
             self.appraisal_template_type = 'okr'
-            self.ninebox_template_id = False
+            # Don't clear ninebox_template_id - preserve it
     
     @api.onchange('ninebox_template_id')
     def _onchange_ninebox_template(self):
-        """Update template type when 9-Box template selected"""
+        """Auto-set template type when 9-Box template is selected"""
         if self.ninebox_template_id:
             self.appraisal_template_type = 'ninebox'
-            self.okr_template_id = False
+            # Don't clear okr_template_id - preserve it
     
+    @api.onchange('survey_id')
+    def _onchange_survey_id(self):
+        """Auto-set template type when Survey is selected"""
+        if self.survey_id:
+            self.appraisal_template_type = 'survey'
+            # Don't clear okr/ninebox templates - preserve them
+
     # ============ HELPER METHODS ============
     def _clear_template_selections(self):
         """Clear template selections when employee changes"""
-        self.okr_template_id = False
-        self.ninebox_template_id = False
-        self.survey_id = False
-        if self.appraisal_template_type in ('okr', 'ninebox'):
-            self.appraisal_template_type = 'survey'
+        # Only clear if explicitly needed (e.g., employee change)
+        # Don't clear when just switching appraisal types
+        if self._context.get('clear_all_templates'):
+            self.okr_template_id = False
+            self.ninebox_template_id = False
+            self.survey_id = False
+            # Also clear criteria lines
+            self.okr_line_ids.unlink()
+            self.ninebox_performance_line_ids.unlink()
+            self.ninebox_potential_line_ids.unlink()
+            self.criteria_loaded = False
+            if self.appraisal_template_type in ('okr', 'ninebox'):
+                self.appraisal_template_type = 'survey'
     
     def _auto_detect_templates(self):
         """Auto-detect and suggest templates based on employee's teams"""
