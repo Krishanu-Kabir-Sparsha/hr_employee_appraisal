@@ -10,11 +10,12 @@
         <field name="inherit_id" ref="oh_appraisal.hr_appraisal_view_form"/>
         <field name="arch" type="xml">
             
-            <!-- Hide the Plan tab -->
+            <!-- Show Plan tab only for Survey type appraisals -->
             <xpath expr="//notebook/page[2]" position="attributes">
-                <attribute name="invisible">1</attribute>
+                <attribute name="invisible">appraisal_template_type not in ('survey', False)</attribute>
+                <attribute name="string">Survey Plan</attribute>
             </xpath>
-            <!-- Hide the original "Start Appraisal And Send Forms" button -->
+            <!-- Hide the original "Start Appraisal And Send Forms" button (we have our own) -->
             <xpath expr="//button[@name='action_start_appraisal']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
