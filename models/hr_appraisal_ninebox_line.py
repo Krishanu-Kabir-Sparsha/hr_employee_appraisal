@@ -9,6 +9,17 @@ class HrAppraisalNineboxPerformanceLine(models.Model):
 
     appraisal_id = fields.Many2one('hr.appraisal', string='Appraisal', required=True, ondelete='cascade', index=True)
     sequence = fields.Integer('Sequence', default=10)
+
+    def write(self, vals):
+        """Override write to sync actual_value changes to linked spreadsheet."""
+        res = super().write(vals)
+        if 'actual_value' in vals and not self.env.context.get('skip_spreadsheet_sync'):
+            appraisals = self.mapped('appraisal_id').filtered(
+                lambda a: a.spreadsheet_id and a.criteria_loaded
+            )
+            for appraisal in appraisals:
+                appraisal._sync_criteria_to_spreadsheet()
+        return res
     
     # Criteria Type
     line_type = fields.Selection([
@@ -68,6 +79,17 @@ class HrAppraisalNineboxPotentialLine(models.Model):
 
     appraisal_id = fields.Many2one('hr.appraisal', string='Appraisal', required=True, ondelete='cascade', index=True)
     sequence = fields.Integer('Sequence', default=10)
+
+    def write(self, vals):
+        """Override write to sync actual_value changes to linked spreadsheet."""
+        res = super().write(vals)
+        if 'actual_value' in vals and not self.env.context.get('skip_spreadsheet_sync'):
+            appraisals = self.mapped('appraisal_id').filtered(
+                lambda a: a.spreadsheet_id and a.criteria_loaded
+            )
+            for appraisal in appraisals:
+                appraisal._sync_criteria_to_spreadsheet()
+        return res
     
     # Criteria Type
     line_type = fields.Selection([

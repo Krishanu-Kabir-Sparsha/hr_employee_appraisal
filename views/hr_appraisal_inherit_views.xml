@@ -90,7 +90,7 @@
                     <field name="has_role_potential" invisible="1"/>
                     <field name="has_common_potential" invisible="1"/>
                     
-                    <group string="📋 Assessment Template Configuration" name="template_config">
+                    <group string="&#x1F4CB; Assessment Template Configuration" name="template_config">
                         <!-- Warning when trying to switch after loading -->
                         <group colspan="2" invisible="not criteria_loaded">
                             <div class="alert alert-warning" role="alert">
@@ -232,7 +232,7 @@
                                 
                                 <button name="action_generate_spreadsheet" 
                                         type="object" 
-                                        string="📊 Generate Spreadsheet" 
+                                        string="&#x1F4CA; Generate Spreadsheet"
                                         class="btn-success btn-lg me-2"
                                         icon="fa-table"
                                         invisible="not criteria_loaded or spreadsheet_id"
@@ -240,11 +240,19 @@
                                 
                                 <button name="action_open_spreadsheet" 
                                         type="object" 
-                                        string="📄 Open Spreadsheet" 
-                                        class="btn-info btn-lg"
+                                        string="&#x1F4C4; Open Spreadsheet"
+                                        class="btn-info btn-lg me-2"
                                         icon="fa-external-link"
                                         invisible="not spreadsheet_id"
                                         help="Open existing spreadsheet"/>
+                                
+                                <button name="action_refresh_spreadsheet" 
+                                        type="object" 
+                                        string="&#x1F504; Refresh Spreadsheet Data"
+                                        class="btn-warning btn-lg"
+                                        icon="fa-refresh"
+                                        invisible="not spreadsheet_id"
+                                        help="Sync data between criteria tables and spreadsheet"/>
                             </div>
                         </group>
                         
@@ -270,7 +278,7 @@
                         </group>
                         
                         <!-- Department Criteria Table -->
-                        <group string="🏢 Department Criteria" invisible="not has_dept_okr">
+                        <group string="&#x1F3E2; Department Criteria" invisible="not has_dept_okr">
                             <field name="okr_dept_line_ids" nolabel="1" colspan="2">
                                 <list editable="bottom" 
                                       decoration-success="achievement_percentage >= 100"
@@ -279,22 +287,21 @@
                                       decoration-danger="achievement_percentage &lt; 70"
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1"/>
-                                    <field name="team_id" readonly="1" string="Team"/>
-                                    <field name="metric" readonly="1"/>
-                                    <field name="actual_value"/>
-                                    <field name="target_value" readonly="1"/>
-                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
-                                    <field name="achievement_percentage" column_invisible="1"/>
-                                    <field name="weighted_score" column_invisible="1"/>
+                                    <field name="objective_breakdown" readonly="1" width="200px"/>
+                                    <field name="priority" readonly="1" width="80px"/>
+                                    <field name="team_id" readonly="1" string="Team" width="100px"/>
+                                    <field name="metric" readonly="1" width="90px"/>
+                                    <field name="actual_value" string="Actual" width="80px"/>
+                                    <field name="target_value" readonly="1" string="Target" width="80px"/>
+                                    <field name="achievement_percentage" string="Achievement %" width="120px"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage" width="160px"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
                         </group>
                         
                         <!-- Role Criteria Table -->
-                        <group string="👤 Role Criteria" invisible="not has_role_okr">
+                        <group string="&#x1F464; Role Criteria" invisible="not has_role_okr">
                             <field name="okr_role_line_ids" nolabel="1" colspan="2">
                                 <list editable="bottom" 
                                       decoration-success="achievement_percentage >= 100"
@@ -303,22 +310,21 @@
                                       decoration-danger="achievement_percentage &lt; 70"
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1"/>
-                                    <field name="team_id" readonly="1" string="Team"/>
-                                    <field name="metric" readonly="1"/>
-                                    <field name="actual_value"/>
-                                    <field name="target_value" readonly="1"/>
-                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
-                                    <field name="achievement_percentage" column_invisible="1"/>
-                                    <field name="weighted_score" column_invisible="1"/>
+                                    <field name="objective_breakdown" readonly="1" width="200px"/>
+                                    <field name="priority" readonly="1" width="80px"/>
+                                    <field name="team_id" readonly="1" string="Team" width="100px"/>
+                                    <field name="metric" readonly="1" width="90px"/>
+                                    <field name="actual_value" string="Actual" width="80px"/>
+                                    <field name="target_value" readonly="1" string="Target" width="80px"/>
+                                    <field name="achievement_percentage" string="Achievement %" width="120px"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage" width="160px"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
                         </group>
                         
                         <!-- Common Criteria Table -->
-                        <group string="🌐 Common Criteria" invisible="not has_common_okr">
+                        <group string="&#x1F30D; Common Criteria" invisible="not has_common_okr">
                             <field name="okr_common_line_ids" nolabel="1" colspan="2">
                                 <list editable="bottom" 
                                       decoration-success="achievement_percentage >= 100"
@@ -327,15 +333,14 @@
                                       decoration-danger="achievement_percentage &lt; 70"
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1"/>
-                                    <field name="team_id" readonly="1" string="Team"/>
-                                    <field name="metric" readonly="1"/>
-                                    <field name="actual_value"/>
-                                    <field name="target_value" readonly="1"/>
-                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
-                                    <field name="achievement_percentage" column_invisible="1"/>
-                                    <field name="weighted_score" column_invisible="1"/>
+                                    <field name="objective_breakdown" readonly="1" width="200px"/>
+                                    <field name="priority" readonly="1" width="80px"/>
+                                    <field name="team_id" readonly="1" string="Team" width="100px"/>
+                                    <field name="metric" readonly="1" width="90px"/>
+                                    <field name="actual_value" string="Actual" width="80px"/>
+                                    <field name="target_value" readonly="1" string="Target" width="80px"/>
+                                    <field name="achievement_percentage" string="Achievement %" width="120px"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage" width="160px"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -354,7 +359,7 @@
                         </group>
                         
                         <!-- Department Performance Table -->
-                        <group string="🏢 Department Performance Criteria" invisible="not has_dept_performance">
+                        <group string="&#x1F3E2; Department Performance Criteria" invisible="not has_dept_performance">
                             <field name="ninebox_perf_dept_line_ids" nolabel="1" colspan="2">
                                 <list editable="bottom" 
                                       decoration-success="achievement_percentage >= 100"
@@ -363,22 +368,21 @@
                                       decoration-danger="achievement_percentage &lt; 70"
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1"/>
-                                    <field name="team_id" readonly="1" string="Team"/>
-                                    <field name="metric" readonly="1"/>
-                                    <field name="actual_value"/>
-                                    <field name="target_value" readonly="1"/>
-                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
-                                    <field name="achievement_percentage" column_invisible="1"/>
-                                    <field name="weighted_score" column_invisible="1"/>
+                                    <field name="objective_breakdown" readonly="1" width="200px"/>
+                                    <field name="priority" readonly="1" width="80px"/>
+                                    <field name="team_id" readonly="1" string="Team" width="100px"/>
+                                    <field name="metric" readonly="1" width="90px"/>
+                                    <field name="actual_value" string="Actual" width="80px"/>
+                                    <field name="target_value" readonly="1" string="Target" width="80px"/>
+                                    <field name="achievement_percentage" string="Achievement %" width="120px"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage" width="160px"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
                         </group>
                         
                         <!-- Role Performance Table -->
-                        <group string="👤 Role Performance Criteria" invisible="not has_role_performance">
+                        <group string="&#x1F464; Role Performance Criteria" invisible="not has_role_performance">
                             <field name="ninebox_perf_role_line_ids" nolabel="1" colspan="2">
                                 <list editable="bottom" 
                                       decoration-success="achievement_percentage >= 100"
@@ -387,22 +391,21 @@
                                       decoration-danger="achievement_percentage &lt; 70"
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1"/>
-                                    <field name="team_id" readonly="1" string="Team"/>
-                                    <field name="metric" readonly="1"/>
-                                    <field name="actual_value"/>
-                                    <field name="target_value" readonly="1"/>
-                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
-                                    <field name="achievement_percentage" column_invisible="1"/>
-                                    <field name="weighted_score" column_invisible="1"/>
+                                    <field name="objective_breakdown" readonly="1" width="200px"/>
+                                    <field name="priority" readonly="1" width="80px"/>
+                                    <field name="team_id" readonly="1" string="Team" width="100px"/>
+                                    <field name="metric" readonly="1" width="90px"/>
+                                    <field name="actual_value" string="Actual" width="80px"/>
+                                    <field name="target_value" readonly="1" string="Target" width="80px"/>
+                                    <field name="achievement_percentage" string="Achievement %" width="120px"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage" width="160px"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
                         </group>
                         
                         <!-- Common Performance Table -->
-                        <group string="🌐 Common Performance Criteria" invisible="not has_common_performance">
+                        <group string="&#x1F30D; Common Performance Criteria" invisible="not has_common_performance">
                             <field name="ninebox_perf_common_line_ids" nolabel="1" colspan="2">
                                 <list editable="bottom" 
                                       decoration-success="achievement_percentage >= 100"
@@ -411,15 +414,14 @@
                                       decoration-danger="achievement_percentage &lt; 70"
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1"/>
-                                    <field name="team_id" readonly="1" string="Team"/>
-                                    <field name="metric" readonly="1"/>
-                                    <field name="actual_value"/>
-                                    <field name="target_value" readonly="1"/>
-                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
-                                    <field name="achievement_percentage" column_invisible="1"/>
-                                    <field name="weighted_score" column_invisible="1"/>
+                                    <field name="objective_breakdown" readonly="1" width="200px"/>
+                                    <field name="priority" readonly="1" width="80px"/>
+                                    <field name="team_id" readonly="1" string="Team" width="100px"/>
+                                    <field name="metric" readonly="1" width="90px"/>
+                                    <field name="actual_value" string="Actual" width="80px"/>
+                                    <field name="target_value" readonly="1" string="Target" width="80px"/>
+                                    <field name="achievement_percentage" string="Achievement %" width="120px"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage" width="160px"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -438,7 +440,7 @@
                         </group>
                         
                         <!-- Department Potential Table -->
-                        <group string="🏢 Department Potential Criteria" invisible="not has_dept_potential">
+                        <group string="&#x1F3E2; Department Potential Criteria" invisible="not has_dept_potential">
                             <field name="ninebox_pot_dept_line_ids" nolabel="1" colspan="2">
                                 <list editable="bottom" 
                                       decoration-success="achievement_percentage >= 100"
@@ -447,22 +449,21 @@
                                       decoration-danger="achievement_percentage &lt; 70"
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1"/>
-                                    <field name="team_id" readonly="1" string="Team"/>
-                                    <field name="metric" readonly="1"/>
-                                    <field name="actual_value"/>
-                                    <field name="target_value" readonly="1"/>
-                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
-                                    <field name="achievement_percentage" column_invisible="1"/>
-                                    <field name="weighted_score" column_invisible="1"/>
+                                    <field name="objective_breakdown" readonly="1" width="200px"/>
+                                    <field name="priority" readonly="1" width="80px"/>
+                                    <field name="team_id" readonly="1" string="Team" width="100px"/>
+                                    <field name="metric" readonly="1" width="90px"/>
+                                    <field name="actual_value" string="Actual" width="80px"/>
+                                    <field name="target_value" readonly="1" string="Target" width="80px"/>
+                                    <field name="achievement_percentage" string="Achievement %" width="120px"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage" width="160px"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
                         </group>
                         
                         <!-- Role Potential Table -->
-                        <group string="👤 Role Potential Criteria" invisible="not has_role_potential">
+                        <group string="&#x1F464; Role Potential Criteria" invisible="not has_role_potential">
                             <field name="ninebox_pot_role_line_ids" nolabel="1" colspan="2">
                                 <list editable="bottom" 
                                       decoration-success="achievement_percentage >= 100"
@@ -471,22 +472,21 @@
                                       decoration-danger="achievement_percentage &lt; 70"
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1"/>
-                                    <field name="team_id" readonly="1" string="Team"/>
-                                    <field name="metric" readonly="1"/>
-                                    <field name="actual_value"/>
-                                    <field name="target_value" readonly="1"/>
-                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
-                                    <field name="achievement_percentage" column_invisible="1"/>
-                                    <field name="weighted_score" column_invisible="1"/>
+                                    <field name="objective_breakdown" readonly="1" width="200px"/>
+                                    <field name="priority" readonly="1" width="80px"/>
+                                    <field name="team_id" readonly="1" string="Team" width="100px"/>
+                                    <field name="metric" readonly="1" width="90px"/>
+                                    <field name="actual_value" string="Actual" width="80px"/>
+                                    <field name="target_value" readonly="1" string="Target" width="80px"/>
+                                    <field name="achievement_percentage" string="Achievement %" width="120px"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage" width="160px"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
                         </group>
                         
                         <!-- Common Potential Table -->
-                        <group string="🌐 Common Potential Criteria" invisible="not has_common_potential">
+                        <group string="&#x1F30D; Common Potential Criteria" invisible="not has_common_potential">
                             <field name="ninebox_pot_common_line_ids" nolabel="1" colspan="2">
                                 <list editable="bottom" 
                                       decoration-success="achievement_percentage >= 100"
@@ -495,15 +495,14 @@
                                       decoration-danger="achievement_percentage &lt; 70"
                                       delete="0" create="0">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="objective_breakdown" readonly="1"/>
-                                    <field name="priority" readonly="1"/>
-                                    <field name="team_id" readonly="1" string="Team"/>
-                                    <field name="metric" readonly="1"/>
-                                    <field name="actual_value"/>
-                                    <field name="target_value" readonly="1"/>
-                                    <field name="weightage" readonly="1" string="Distributed Weightage"/>
-                                    <field name="achievement_percentage" column_invisible="1"/>
-                                    <field name="weighted_score" column_invisible="1"/>
+                                    <field name="objective_breakdown" readonly="1" width="200px"/>
+                                    <field name="priority" readonly="1" width="80px"/>
+                                    <field name="team_id" readonly="1" string="Team" width="100px"/>
+                                    <field name="metric" readonly="1" width="90px"/>
+                                    <field name="actual_value" string="Actual" width="80px"/>
+                                    <field name="target_value" readonly="1" string="Target" width="80px"/>
+                                    <field name="achievement_percentage" string="Achievement %" width="120px"/>
+                                    <field name="weightage" readonly="1" string="Distributed Weightage" width="160px"/>
                                     <field name="line_type" column_invisible="1"/>
                                 </list>
                             </field>
@@ -511,20 +510,9 @@
                     </div>
                     
                     <!-- Performance Summary Section (only for OKR/9-Box) -->
-                    <group string="🎯 Performance Summary" invisible="not criteria_loaded or appraisal_template_type == 'survey'">
-                        <group>
-                            <field name="final_score" 
-                                   widget="gauge" 
-                                   options="{'max_value': 100, 'style': 'width:160px; height: 120px;'}"/>
-                        </group>
-                        <group>
-                            <field name="performance_rating" 
-                                   widget="badge"
-                                   decoration-success="performance_rating == 'outstanding'"
-                                   decoration-info="performance_rating == 'exceeds'"
-                                   decoration-primary="performance_rating == 'meets'"
-                                   decoration-warning="performance_rating == 'needs_improvement'"
-                                   decoration-danger="performance_rating == 'unsatisfactory'"/>
+                    <group string="&#x1F3AF; Performance Summary" invisible="not criteria_loaded or appraisal_template_type == 'survey'">
+                        <group colspan="2">
+                            <field name="performance_chart_html" nolabel="1" readonly="1" widget="html"/>
                         </group>
                     </group>
                 </page>
@@ -570,6 +558,11 @@
             </xpath>
             <xpath expr="//field[@name='colleague_survey_id']" position="attributes">
                 <attribute name="invisible">appraisal_template_type not in ('survey', False) or hr_colleague == False</attribute>
+            </xpath>
+
+            <!-- Hide Appraisal Result Summary (from oh_appraisal_ext) for OKR and 9-Box types -->
+            <xpath expr="//field[@name='final_percentage']/.." position="attributes">
+                <attribute name="invisible">appraisal_template_type in ('okr', 'ninebox')</attribute>
             </xpath>
             
         </field>

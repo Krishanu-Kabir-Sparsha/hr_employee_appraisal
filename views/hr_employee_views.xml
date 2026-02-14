@@ -55,7 +55,7 @@
                     <!-- ============================================ -->
                     <!-- SECTION 1: Appraisals from Main Appraisal Module (oh_appraisal) -->
                     <!-- ============================================ -->
-                    <group string="📊 Appraisals from Appraisal Module">
+                    <group string="&#x1F4CA; Appraisals from Appraisal Module">
                         <group colspan="2">
                             <div class="alert alert-info" role="alert">
                                 <i class="fa fa-info-circle"/> 
@@ -94,8 +94,10 @@
                     
                     <!-- ============================================ -->
                     <!-- SECTION 2: Employee-Specific Appraisals (hr.employee.appraisal) -->
+                    <!-- COMMENTED OUT - Using 'Appraisals from Appraisal Module' section instead -->
                     <!-- ============================================ -->
-                    <group string="📋 Employee-Specific Appraisals">
+                    <!--
+                    <group string="&#x1F4CB; Employee-Specific Appraisals">
                         <group colspan="2">
                             <button name="%(action_create_employee_appraisal)d" 
                                     type="action" 
@@ -108,10 +110,8 @@
                         <field name="appraisal_ids" nolabel="1" colspan="2">
                             <form string="Employee Appraisal">
                                 <header>
-                                    <!-- Add status bar if needed later -->
                                 </header>
                                 <sheet>
-                                    <!-- Smart Button Box -->
                                     <div class="oe_button_box" name="button_box">
                                         <button name="action_view_spreadsheet" 
                                                 type="object" 
@@ -139,7 +139,7 @@
                                         </group>
                                     </group>
                                     
-                                    <group string="📋 Auto-Detected Configuration" class="alert alert-info">
+                                    <group string="Auto-Detected Configuration" class="alert alert-info">
                                         <group>
                                             <field name="appraisal_team_id" readonly="1"/>
                                             <field name="template_type" readonly="1"/>
@@ -154,41 +154,35 @@
                                         </group>
                                     </group>
                                     
-                                    <group string="⚙️ Select Evaluation Type">
+                                    <group string="Select Evaluation Type">
                                         <field name="evaluation_type" widget="radio" required="1"/>
                                     </group>
                                     
-                                    <group string="📊 Evaluation Criteria" invisible="not evaluation_type">
-                
-                                        <!-- Buttons -->
+                                    <group string="Evaluation Criteria" invisible="not evaluation_type">
                                         <div class="mb-3">
-                                            <!-- Load button - creates everything -->
                                             <button name="action_load_to_spreadsheet" 
                                                     type="object" 
-                                                    string="📥 Load Criteria &amp; Create Spreadsheet" 
+                                                    string="Load Criteria and Create Spreadsheet" 
                                                     class="btn-primary btn-lg"
                                                     icon="fa-download"
                                                     invisible="criteria_loaded"
                                                     help="Load criteria from template and automatically create spreadsheet"/>
                                             
-                                            <!-- View spreadsheet button -->
                                             <button name="action_view_spreadsheet" 
                                                     type="object" 
-                                                    string="📊 Open Spreadsheet" 
+                                                    string="Open Spreadsheet" 
                                                     class="btn-success btn-lg me-2"
                                                     icon="fa-table"
                                                     invisible="not criteria_loaded"
                                                     help="Open the created spreadsheet"/>
                                         </div>
                                         
-                                        <!-- Show HTML preview if not loaded -->
                                         <field name="criteria_data" 
                                             nolabel="1" 
                                             readonly="1" 
                                             widget="html"
                                             invisible="criteria_loaded"/>
                                         
-                                        <!-- Show success message if loaded -->
                                         <div class="alert alert-success" invisible="not criteria_loaded">
                                             <div class="d-flex align-items-center">
                                                 <i class="fa fa-check-circle fa-3x me-3 text-success"></i>
@@ -224,7 +218,6 @@
                                 </sheet>
                             </form>
                             
-                            <!-- List view for Employee-Specific Appraisals -->
                             <list string="Appraisals">
                                 <field name="name"/>
                                 <field name="appraisal_team_id"/>
@@ -235,6 +228,7 @@
                             </list>
                         </field>
                     </group>
+                    -->
                 </page>
             </xpath>
         </field>

@@ -68,3 +68,15 @@ class HrAppraisalOKRLine(models.Model):
         for line in self:
             if line.weightage < 0 or line.weightage > 100:
                 raise ValidationError(_('Weightage must be between 0 and 100'))
+
+    def write(self, vals):
+        """Override write to sync actual_value changes to linked spreadsheet."""
+        res = super().write(vals)
+        if 'actual_value' in vals and not self.env.context.get('skip_spreadsheet_sync'):
+            # Group by appraisal to avoid multiple regenerations
+            appraisals = self.mapped('appraisal_id').filtered(
+                lambda a: a.spreadsheet_id and a.criteria_loaded
+            )
+            for appraisal in appraisals:
+                appraisal._sync_criteria_to_spreadsheet()
+        return res
