@@ -17,7 +17,8 @@ class HrAppraisalInherit(models.Model):
 
     def _auto_init(self):
         """
-        Handle column type changes for employee_badge_id
+        Handle column type changes for employee_badge_id.
+        Also fix any existing records with NULL stage_id.
         """
         cr = self.env.cr
         cr.execute("""
@@ -35,7 +36,22 @@ class HrAppraisalInherit(models.Model):
             """)
             _logger.info("Dropped old employee_badge_id column for Many2one field")
         
-        return super()._auto_init()
+        res = super()._auto_init()
+        
+        # Fix existing records with NULL stage_id
+        cr.execute("""
+            UPDATE hr_appraisal
+            SET stage_id = (
+                SELECT id FROM hr_appraisal_stages
+                ORDER BY sequence ASC LIMIT 1
+            )
+            WHERE stage_id IS NULL
+            AND EXISTS (SELECT 1 FROM hr_appraisal_stages)
+        """)
+        if cr.rowcount:
+            _logger.info("Fixed %d appraisal records with missing stage_id", cr.rowcount)
+        
+        return res
 
     # ============ BADGE ID SELECTION ============
     employee_badge_id = fields.Many2one(
@@ -537,12 +553,17 @@ class HrAppraisalInherit(models.Model):
     # ============ OVERRIDE CREATE/WRITE ============
     @api.model_create_multi
     def create(self, vals_list):
-        """Override create to handle badge ID lookup"""
+        """Override create to handle badge ID lookup and ensure stage_id is set."""
         for vals in vals_list:
             if vals.get('employee_badge_id') and not vals.get('employee_id'):
                 badge = self.env['employee.badge'].browse(vals['employee_badge_id'])
                 if badge and badge.employee_id:
                     vals['employee_id'] = badge.employee_id.id
+            # Ensure stage_id is always set to first stage if missing
+            if not vals.get('stage_id'):
+                first_stage = self.env['hr.appraisal.stages'].search([], limit=1, order='sequence ASC')
+                if first_stage:
+                    vals['stage_id'] = first_stage.id
         return super().create(vals_list)
     
     def write(self, vals):
@@ -697,216 +718,389 @@ class HrAppraisalInherit(models.Model):
 
     @api.depends('okr_line_ids.target_value', 'okr_line_ids.actual_value',
                  'okr_line_ids.achievement_percentage', 'okr_line_ids.line_type',
+                 'okr_line_ids.weighted_score', 'okr_line_ids.weightage',
                  'ninebox_performance_line_ids.target_value', 'ninebox_performance_line_ids.actual_value',
                  'ninebox_performance_line_ids.achievement_percentage', 'ninebox_performance_line_ids.line_type',
+                 'ninebox_performance_line_ids.weighted_score', 'ninebox_performance_line_ids.weightage',
                  'ninebox_potential_line_ids.target_value', 'ninebox_potential_line_ids.actual_value',
                  'ninebox_potential_line_ids.achievement_percentage', 'ninebox_potential_line_ids.line_type',
+                 'ninebox_potential_line_ids.weighted_score', 'ninebox_potential_line_ids.weightage',
+                 'total_performance_score', 'total_potential_score',
                  'appraisal_template_type', 'criteria_loaded')
     def _compute_performance_chart(self):
-        """Generate HTML performance chart grouped by evaluation type."""
+        """Generate HTML performance chart - different for OKR vs 9-Box."""
         for record in self:
             if not record.criteria_loaded or record.appraisal_template_type == 'survey':
                 record.performance_chart_html = False
                 continue
 
-            # Collect lines grouped by type
-            groups = {}  # {type_label: {'target': X, 'actual': Y, 'count': N}}
-            all_lines = []
-
             if record.appraisal_template_type == 'okr':
-                for line in record.okr_line_ids:
-                    lbl = dict(line._fields['line_type'].selection).get(line.line_type, 'Other')
-                    groups.setdefault(lbl, {'target': 0, 'actual': 0, 'count': 0, 'weighted_score': 0, 'weightage': 0})
-                    groups[lbl]['target'] += line.target_value
-                    groups[lbl]['actual'] += line.actual_value
-                    groups[lbl]['count'] += 1
-                    groups[lbl]['weighted_score'] += line.weighted_score
-                    groups[lbl]['weightage'] += line.weightage
-                    all_lines.append(line)
+                record.performance_chart_html = record._build_okr_chart_html()
             elif record.appraisal_template_type == 'ninebox':
-                for line in record.ninebox_performance_line_ids:
-                    lbl = 'Perf: ' + dict(line._fields['line_type'].selection).get(line.line_type, 'Other')
-                    groups.setdefault(lbl, {'target': 0, 'actual': 0, 'count': 0, 'weighted_score': 0, 'weightage': 0})
-                    groups[lbl]['target'] += line.target_value
-                    groups[lbl]['actual'] += line.actual_value
-                    groups[lbl]['count'] += 1
-                    groups[lbl]['weighted_score'] += line.weighted_score
-                    groups[lbl]['weightage'] += line.weightage
-                    all_lines.append(line)
-                for line in record.ninebox_potential_line_ids:
-                    lbl = 'Pot: ' + dict(line._fields['line_type'].selection).get(line.line_type, 'Other')
-                    groups.setdefault(lbl, {'target': 0, 'actual': 0, 'count': 0, 'weighted_score': 0, 'weightage': 0})
-                    groups[lbl]['target'] += line.target_value
-                    groups[lbl]['actual'] += line.actual_value
-                    groups[lbl]['count'] += 1
-                    groups[lbl]['weighted_score'] += line.weighted_score
-                    groups[lbl]['weightage'] += line.weightage
-                    all_lines.append(line)
-
-            if not groups:
-                record.performance_chart_html = '<p class="text-muted">No criteria data to display.</p>'
-                continue
-
-            # Overall stats
-            total_target = sum(g['target'] for g in groups.values())
-            total_actual = sum(g['actual'] for g in groups.values())
-            overall_pct = (total_actual / total_target * 100) if total_target > 0 else 0
-            total_weighted = sum(g['weighted_score'] for g in groups.values())
-
-            # Rating
-            if overall_pct >= 90:
-                r_label, r_color = 'Outstanding', '#2E7D32'
-            elif overall_pct >= 75:
-                r_label, r_color = 'Exceeds Expectations', '#1565C0'
-            elif overall_pct >= 60:
-                r_label, r_color = 'Meets Expectations', '#6A1B9A'
-            elif overall_pct >= 40:
-                r_label, r_color = 'Needs Improvement', '#E65100'
+                record.performance_chart_html = record._build_ninebox_chart_html()
             else:
-                r_label, r_color = 'Unsatisfactory', '#C62828'
+                record.performance_chart_html = False
 
-            # Color palette for groups
-            palette = ['#4A90E2', '#26A69A', '#AB47BC', '#EF5350', '#FFA726', '#66BB6A', '#42A5F5', '#EC407A']
+    def _get_rating(self, pct):
+        """Get rating label and color based on percentage."""
+        if pct >= 90:
+            return 'Outstanding', '#2E7D32'
+        elif pct >= 75:
+            return 'Exceeds Expectations', '#1565C0'
+        elif pct >= 60:
+            return 'Meets Expectations', '#6A1B9A'
+        elif pct >= 40:
+            return 'Needs Improvement', '#E65100'
+        else:
+            return 'Unsatisfactory', '#C62828'
 
-            # --- Build SVG donut for overall achievement ---
-            radius = 54
-            stroke = 10
-            circumference = 2 * 3.14159 * radius
-            dash = circumference * min(overall_pct, 100) / 100
-            gap = circumference - dash
+    def _build_donut_svg(self, pct, color, size=140):
+        """Build SVG donut ring for a percentage value."""
+        half = size / 2
+        radius = half - 16
+        stroke = 10
+        circumference = 2 * 3.14159 * radius
+        dash = circumference * min(pct, 100) / 100
+        gap = circumference - dash
+        return f'''<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">
+            <circle cx="{half}" cy="{half}" r="{radius}" fill="none" stroke="#E8E8E8" stroke-width="{stroke}"/>
+            <circle cx="{half}" cy="{half}" r="{radius}" fill="none" stroke="{color}" stroke-width="{stroke}"
+                    stroke-dasharray="{dash:.1f} {gap:.1f}" stroke-linecap="round"
+                    transform="rotate(-90 {half} {half})" style="transition: stroke-dasharray 0.6s;"/>
+            <text x="{half}" y="{half - 6}" text-anchor="middle" font-size="22" font-weight="700" fill="{color}">{pct:.0f}%</text>
+            <text x="{half}" y="{half + 12}" text-anchor="middle" font-size="9" fill="#888">Achievement</text>
+        </svg>'''
 
-            donut_svg = f'''
-            <svg width="140" height="140" viewBox="0 0 140 140">
-                <circle cx="70" cy="70" r="{radius}" fill="none" stroke="#E8E8E8" stroke-width="{stroke}"/>
-                <circle cx="70" cy="70" r="{radius}" fill="none" stroke="{r_color}" stroke-width="{stroke}"
-                        stroke-dasharray="{dash:.1f} {gap:.1f}"
-                        stroke-linecap="round" transform="rotate(-90 70 70)"
-                        style="transition: stroke-dasharray 0.6s;"/>
-                <text x="70" y="64" text-anchor="middle" font-size="22" font-weight="700" fill="{r_color}">{overall_pct:.0f}%</text>
-                <text x="70" y="82" text-anchor="middle" font-size="9" fill="#888">Achievement</text>
-            </svg>'''
+    # ============ OKR PERFORMANCE CHART ============
+    def _build_okr_chart_html(self):
+        """Build OKR-specific performance chart with clear progress bars."""
+        self.ensure_one()
+        groups = {}
+        palette = {'Department': '#4A90E2', 'Role': '#26A69A', 'Common': '#AB47BC'}
 
-            # --- Build grouped bar chart SVG ---
-            max_val = max([g['target'] for g in groups.values()] + [g['actual'] for g in groups.values()] + [1])
-            bar_h = 28
-            gap_between = 14
-            label_w = 120
-            chart_w = 420
-            total_h = len(groups) * (bar_h + gap_between) + 20
+        for line in self.okr_line_ids:
+            lbl = dict(line._fields['line_type'].selection).get(line.line_type, 'Other')
+            grp = groups.setdefault(lbl, {'target': 0, 'actual': 0, 'count': 0, 'weighted_score': 0, 'weightage': 0})
+            grp['target'] += line.target_value
+            grp['actual'] += line.actual_value
+            grp['count'] += 1
+            grp['weighted_score'] += line.weighted_score
+            grp['weightage'] += line.weightage
 
-            bars_svg = f'<svg width="{label_w + chart_w + 80}" height="{total_h}" viewBox="0 0 {label_w + chart_w + 80} {total_h}">'
+        if not groups:
+            return '<p class="text-muted">No criteria data to display.</p>'
 
-            for i, (grp_name, gdata) in enumerate(groups.items()):
-                y = i * (bar_h + gap_between) + 10
-                color = palette[i % len(palette)]
-                t_pct = gdata['target'] / max_val if max_val > 0 else 0
-                a_pct = gdata['actual'] / max_val if max_val > 0 else 0
-                ach = (gdata['actual'] / gdata['target'] * 100) if gdata['target'] > 0 else 0
+        total_target = sum(g['target'] for g in groups.values())
+        total_actual = sum(g['actual'] for g in groups.values())
+        overall_pct = (total_actual / total_target * 100) if total_target > 0 else 0
+        total_weighted = sum(g['weighted_score'] for g in groups.values())
+        r_label, r_color = self._get_rating(overall_pct)
 
-                if ach >= 90:
-                    ach_c = '#2E7D32'
-                elif ach >= 70:
-                    ach_c = '#1565C0'
-                elif ach >= 50:
-                    ach_c = '#E65100'
-                else:
-                    ach_c = '#C62828'
+        donut_svg = self._build_donut_svg(overall_pct, r_color)
 
-                # Label
-                bars_svg += f'<text x="{label_w - 8}" y="{y + bar_h / 2 + 4}" text-anchor="end" font-size="11" font-weight="600" fill="#333">{grp_name}</text>'
+        # Build category cards
+        cards_html = ''
+        for grp_name, gdata in groups.items():
+            color = palette.get(grp_name, '#4A90E2')
+            ach = (gdata['actual'] / gdata['target'] * 100) if gdata['target'] > 0 else 0
+            cards_html += f'''
+            <div style="flex:1; min-width:160px; max-width:250px; background:#FAFAFA; border-radius:8px; padding:12px 14px; border-top:3px solid {color};">
+                <div style="font-size:11px; color:#888; font-weight:600; text-transform:uppercase; margin-bottom:4px;">{grp_name}</div>
+                <div style="font-size:22px; font-weight:700; color:{color};">{ach:.0f}<span style="font-size:13px;">%</span></div>
+                <div style="font-size:10px; color:#999; margin-top:2px;">
+                    {gdata['count']} criteria &middot; Target {gdata['target']:.0f} &middot; Actual {gdata['actual']:.0f}
+                </div>
+            </div>'''
 
-                # Target bar (full width, lighter)
-                t_w = max(t_pct * chart_w, 2)
-                bars_svg += f'<rect x="{label_w}" y="{y}" width="{t_w:.1f}" height="{bar_h / 2 - 1}" rx="3" fill="{color}" opacity="0.25"/>'
+        # Build horizontal progress bars per category
+        bars_html = ''
+        for grp_name, gdata in groups.items():
+            color = palette.get(grp_name, '#4A90E2')
+            ach = (gdata['actual'] / gdata['target'] * 100) if gdata['target'] > 0 else 0
+            fill_pct = min(ach, 100)
+            overflow = ach > 100
+            ach_label, ach_color = self._get_rating(ach)
 
-                # Actual bar (overlaid, same row bottom half)
-                a_w = max(a_pct * chart_w, 0)
-                bars_svg += f'<rect x="{label_w}" y="{y + bar_h / 2 + 1}" width="{a_w:.1f}" height="{bar_h / 2 - 1}" rx="3" fill="{color}" opacity="0.85"/>'
+            # Target / Actual annotation
+            target_txt = f"{gdata['target']:.0f}"
+            actual_txt = f"{gdata['actual']:.0f}"
 
-                # Achievement % text
-                bars_svg += f'<text x="{label_w + chart_w + 6}" y="{y + bar_h / 2 + 5}" font-size="12" font-weight="700" fill="{ach_c}">{ach:.0f}%</text>'
-
-            bars_svg += '</svg>'
-
-            # --- Legend for bars ---
-            legend_items = ''
-            for i, grp_name in enumerate(groups.keys()):
-                color = palette[i % len(palette)]
-                legend_items += f'''
-                    <span style="display:inline-flex; align-items:center; margin-right:14px; font-size:11px;">
-                        <span style="width:10px;height:10px;border-radius:2px;background:{color};display:inline-block;margin-right:4px; opacity:0.3;"></span>
-                        <span style="margin-right:2px;">Target</span>
-                        <span style="width:10px;height:10px;border-radius:2px;background:{color};display:inline-block;margin-right:4px;margin-left:6px; opacity:0.85;"></span>
-                        Actual &mdash; <strong style="margin-left:2px;">{grp_name}</strong>
-                    </span>'''
-
-            # --- Group detail cards ---
-            cards_html = ''
-            for i, (grp_name, gdata) in enumerate(groups.items()):
-                color = palette[i % len(palette)]
-                ach = (gdata['actual'] / gdata['target'] * 100) if gdata['target'] > 0 else 0
-                cards_html += f'''
-                <div style="flex:1; min-width:160px; max-width:250px; background:#FAFAFA; border-radius:8px; padding:12px 14px; border-top:3px solid {color};">
-                    <div style="font-size:11px; color:#888; font-weight:600; text-transform:uppercase; margin-bottom:4px;">{grp_name}</div>
-                    <div style="font-size:22px; font-weight:700; color:{color};">{ach:.0f}<span style="font-size:13px;">%</span></div>
-                    <div style="font-size:10px; color:#999; margin-top:2px;">
-                        {gdata['count']} criteria &middot; Target {gdata['target']:.0f} &middot; Actual {gdata['actual']:.0f}
-                    </div>
-                </div>'''
-
-            # --- Assemble full HTML ---
-            html = f'''
-            <div style="font-family: 'Segoe UI', system-ui, sans-serif;">
-                <!-- Top: Donut + Rating + KPI Cards -->
-                <div style="display:flex; align-items:center; gap:24px; margin-bottom:18px; flex-wrap:wrap;">
-                    <!-- Donut -->
-                    <div style="text-align:center;">
-                        {donut_svg}
-                    </div>
-                    <!-- Rating card -->
-                    <div style="min-width:180px;">
-                        <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Performance Rating</div>
-                        <div style="font-size:20px; font-weight:800; color:{r_color}; margin:4px 0;">{r_label}</div>
-                        <div style="font-size:12px; color:#666;">
-                            Weighted Score: <strong style="color:#333;">{total_weighted:.1f}</strong>
-                            <span title="Weighted Score = Sum of (Achievement% / 100 × Distributed Weightage) for each criterion.&#10;&#10;Example: If Achievement is 80% and Weightage is 25, then that line contributes 0.80 × 25 = 20 to the total." style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:#E0E0E0; color:#666; font-size:10px; font-weight:700; margin-left:4px; vertical-align:middle;">?</span>
-                        </div>
-                        <div style="font-size:12px; color:#666;">
-                            Total: <strong style="color:#4A90E2;">{total_target:.0f}</strong>
-                            <span style="color:#bbb;"> / </span>
-                            <strong style="color:#26A69A;">{total_actual:.0f}</strong>
-                        </div>
-                    </div>
-                    <!-- Group cards -->
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; flex:1;">
-                        {cards_html}
+            bars_html += f'''
+            <div style="margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+                    <span style="font-size:12px; font-weight:600; color:#333;">{grp_name}</span>
+                    <span style="font-size:11px; color:#666;">
+                        Actual <strong style="color:{color};">{actual_txt}</strong> / Target <strong>{target_txt}</strong>
+                    </span>
+                </div>
+                <div style="position:relative; background:#E8E8E8; border-radius:6px; height:28px; overflow:visible;">
+                    <div style="position:absolute; top:0; left:0; height:100%; width:{fill_pct:.1f}%; background:{color};
+                                border-radius:6px; transition:width 0.4s;{' box-shadow: 0 0 8px ' + color + ';' if overflow else ''}"></div>
+                    <div style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; align-items:center;
+                                justify-content:flex-end; padding-right:10px;">
+                        <span style="font-size:13px; font-weight:700; color:{ach_color}; text-shadow:0 0 3px rgba(255,255,255,0.8);">
+                            {ach:.1f}%
+                        </span>
                     </div>
                 </div>
+                <div style="font-size:10px; color:#999; margin-top:2px;">
+                    Weighted Score: {gdata['weighted_score']:.1f} / {gdata['weightage']:.1f} weightage
+                </div>
+            </div>'''
 
-                <!-- Grouped bar chart -->
-                <div style="background:#FAFAFA; border:1px solid #EEE; border-radius:10px; padding:16px 12px 10px 12px; overflow-x:auto;">
-                    <div style="font-size:12px; font-weight:600; color:#555; margin-bottom:8px;">Target vs Actual by Category</div>
-                    {bars_svg}
-                    <div style="margin-top:6px; display:flex; flex-wrap:wrap;">
-                        {legend_items}
+        return f'''
+        <div style="font-family: 'Segoe UI', system-ui, sans-serif;">
+            <div style="display:flex; align-items:center; gap:24px; margin-bottom:18px; flex-wrap:wrap;">
+                <div style="text-align:center;">{donut_svg}</div>
+                <div style="min-width:180px;">
+                    <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Performance Rating</div>
+                    <div style="font-size:20px; font-weight:800; color:{r_color}; margin:4px 0;">{r_label}</div>
+                    <div style="font-size:12px; color:#666;">
+                        Weighted Score: <strong style="color:#333;">{total_weighted:.1f}</strong>
+                        <span title="Weighted Score = Sum of (Achievement% / 100 x Distributed Weightage) for each criterion.&#10;&#10;Example: If Achievement is 80% and Weightage is 25, then that line contributes 0.80 x 25 = 20 to the total."
+                              style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:#E0E0E0; color:#666; font-size:10px; font-weight:700; margin-left:4px; vertical-align:middle;">?</span>
                     </div>
+                    <div style="font-size:12px; color:#666;">
+                        Total: <strong style="color:#4A90E2;">{total_target:.0f}</strong>
+                        <span style="color:#bbb;"> / </span>
+                        <strong style="color:#26A69A;">{total_actual:.0f}</strong>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; flex:1;">{cards_html}</div>
+            </div>
+            <div style="background:#FAFAFA; border:1px solid #EEE; border-radius:10px; padding:18px 16px 8px 16px;">
+                <div style="font-size:13px; font-weight:600; color:#555; margin-bottom:14px;">Achievement by Category</div>
+                {bars_html}
+            </div>
+        </div>'''
+
+    # ============ 9-BOX GRID PERFORMANCE CHART ============
+    def _build_ninebox_chart_html(self):
+        """Build professional 9-Box Grid visualization for Performance Summary."""
+        self.ensure_one()
+
+        perf_score = self.total_performance_score
+        pot_score = self.total_potential_score
+        perf_pct = min(perf_score, 100)
+        pot_pct = min(pot_score, 100)
+
+        # Determine quadrant
+        def _quad(p):
+            if p >= 66.67:
+                return 2  # High
+            elif p >= 33.33:
+                return 1  # Medium
+            return 0  # Low
+
+        perf_q = _quad(perf_pct)
+        pot_q = _quad(pot_pct)
+
+        # 9-box definitions [row_from_top][col_from_left]
+        # row 0 = High Potential (top), row 2 = Low Potential (bottom)
+        # col 0 = Low Performance (left), col 2 = High Performance (right)
+        cells = [
+            # Row 0: High Potential
+            [
+                {'name': 'Enigma', 'sub': 'Rough Diamond', 'bg': '#FFF3E0', 'border': '#FFB74D', 'icon': '&#x1F48E;'},
+                {'name': 'Growth Gem', 'sub': 'High Impact', 'bg': '#E8F5E9', 'border': '#81C784', 'icon': '&#x1F331;'},
+                {'name': 'Star', 'sub': 'Top Talent', 'bg': '#E8F5E9', 'border': '#4CAF50', 'icon': '&#x2B50;'},
+            ],
+            # Row 1: Medium Potential
+            [
+                {'name': 'Dilemma', 'sub': 'Up or Out', 'bg': '#FFF3E0', 'border': '#FF8A65', 'icon': '&#x26A0;'},
+                {'name': 'Core Player', 'sub': 'Key Contributor', 'bg': '#FFFDE7', 'border': '#FFD54F', 'icon': '&#x1F3AF;'},
+                {'name': 'High Performer', 'sub': 'Future Star', 'bg': '#E8F5E9', 'border': '#66BB6A', 'icon': '&#x1F680;'},
+            ],
+            # Row 2: Low Potential
+            [
+                {'name': 'Talent Risk', 'sub': 'Underperformer', 'bg': '#FFEBEE', 'border': '#EF5350', 'icon': '&#x1F6A8;'},
+                {'name': 'Average', 'sub': 'Solid Performer', 'bg': '#FFF8E1', 'border': '#FFB74D', 'icon': '&#x1F4BC;'},
+                {'name': 'Workhorse', 'sub': 'Trusted Pro', 'bg': '#E3F2FD', 'border': '#42A5F5', 'icon': '&#x1F3C6;'},
+            ],
+        ]
+
+        # Employee's cell: pot_q=2 -> row 0, pot_q=0 -> row 2
+        emp_row = 2 - pot_q
+        emp_col = perf_q
+        emp_cell = cells[emp_row][emp_col]
+
+        # Grid SVG dimensions - large for clear visibility
+        grid_w, grid_h = 660, 480
+        margin_l, margin_t, margin_r, margin_b = 70, 35, 15, 50
+        cell_w = grid_w / 3
+        cell_h = grid_h / 3
+
+        # Pot/Perf labels
+        pot_labels = ['Low', 'Medium', 'High']
+        perf_labels = ['Low', 'Medium', 'High']
+
+        # Build grid SVG
+        svg_total_w = margin_l + grid_w + margin_r
+        svg_total_h = margin_t + grid_h + margin_b
+        svg = f'<svg width="{svg_total_w}" height="{svg_total_h}" viewBox="0 0 {svg_total_w} {svg_total_h}" style="font-family: Segoe UI, system-ui, sans-serif;">'
+
+        # Draw cells
+        for row in range(3):
+            for col in range(3):
+                cx = margin_l + col * cell_w
+                cy = margin_t + row * cell_h
+                cell = cells[row][col]
+                is_active = (row == emp_row and col == emp_col)
+                stroke_w = 3 if is_active else 1
+                stroke_c = cell['border'] if is_active else '#DDD'
+                opacity = '1' if is_active else '0.6'
+
+                svg += f'<rect x="{cx}" y="{cy}" width="{cell_w}" height="{cell_h}" rx="6" fill="{cell["bg"]}" stroke="{stroke_c}" stroke-width="{stroke_w}" opacity="{opacity}"/>'
+                # Icon
+                svg += f'<text x="{cx + cell_w/2}" y="{cy + 38}" text-anchor="middle" font-size="26">{cell["icon"]}</text>'
+                # Name
+                font_w = '700' if is_active else '600'
+                f_size = '14' if is_active else '12'
+                svg += f'<text x="{cx + cell_w/2}" y="{cy + 66}" text-anchor="middle" font-size="{f_size}" font-weight="{font_w}" fill="#333">{cell["name"]}</text>'
+                # Subtitle
+                svg += f'<text x="{cx + cell_w/2}" y="{cy + 86}" text-anchor="middle" font-size="10" fill="#888">{cell["sub"]}</text>'
+
+                # Active cell highlight
+                if is_active:
+                    svg += f'<rect x="{cx + 2}" y="{cy + 2}" width="{cell_w - 4}" height="{cell_h - 4}" rx="5" fill="none" stroke="{cell["border"]}" stroke-width="2" stroke-dasharray="6 3" opacity="0.5"/>'
+
+        # Employee position dot (precise based on scores)
+        dot_x = margin_l + (perf_pct / 100) * grid_w
+        dot_y = margin_t + (1 - pot_pct / 100) * grid_h
+        # Clamp within grid
+        dot_x = max(margin_l + 10, min(dot_x, margin_l + grid_w - 10))
+        dot_y = max(margin_t + 10, min(dot_y, margin_t + grid_h - 10))
+
+        svg += f'''
+            <circle cx="{dot_x}" cy="{dot_y}" r="16" fill="{emp_cell["border"]}" opacity="0.3"/>
+            <circle cx="{dot_x}" cy="{dot_y}" r="10" fill="{emp_cell["border"]}" stroke="white" stroke-width="3"/>
+            <circle cx="{dot_x}" cy="{dot_y}" r="4" fill="white"/>
+        '''
+
+        # Y-axis label (Potential)
+        svg += f'<text x="18" y="{margin_t + grid_h/2}" text-anchor="middle" font-size="13" font-weight="700" fill="#555" transform="rotate(-90 18 {margin_t + grid_h/2})">POTENTIAL &#x2192;</text>'
+        for i, lbl in enumerate(reversed(pot_labels)):
+            y_center = margin_t + i * cell_h + cell_h / 2
+            svg += f'<text x="{margin_l - 10}" y="{y_center + 4}" text-anchor="end" font-size="11" fill="#999">{lbl}</text>'
+
+        # X-axis label (Performance)
+        svg += f'<text x="{margin_l + grid_w/2}" y="{margin_t + grid_h + 45}" text-anchor="middle" font-size="13" font-weight="700" fill="#555">PERFORMANCE &#x2192;</text>'
+        for i, lbl in enumerate(perf_labels):
+            x_center = margin_l + i * cell_w + cell_w / 2
+            svg += f'<text x="{x_center}" y="{margin_t + grid_h + 22}" text-anchor="middle" font-size="11" fill="#999">{lbl}</text>'
+
+        svg += '</svg>'
+
+        # Build score gauges
+        def _mini_gauge(label, score, color):
+            pct = min(score, 100)
+            return f'''
+            <div style="text-align:center; min-width:100px;">
+                <div style="font-size:10px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.3px; margin-bottom:6px;">{label}</div>
+                <div style="position:relative; width:80px; height:80px; margin:0 auto;">
+                    <svg width="80" height="80" viewBox="0 0 80 80">
+                        <circle cx="40" cy="40" r="32" fill="none" stroke="#E8E8E8" stroke-width="7"/>
+                        <circle cx="40" cy="40" r="32" fill="none" stroke="{color}" stroke-width="7"
+                                stroke-dasharray="{2*3.14159*32*pct/100:.1f} {2*3.14159*32*(100-pct)/100:.1f}"
+                                stroke-linecap="round" transform="rotate(-90 40 40)"/>
+                        <text x="40" y="43" text-anchor="middle" font-size="16" font-weight="700" fill="{color}">{score:.0f}</text>
+                    </svg>
+                </div>
+            </div>'''
+
+        _, perf_color = self._get_rating(perf_pct)
+        _, pot_color = self._get_rating(pot_pct)
+        avg_score = (perf_pct + pot_pct) / 2
+        _, overall_color = self._get_rating(avg_score)
+        overall_label, _ = self._get_rating(avg_score)
+
+        # Performance and Potential category breakdowns
+        def _build_breakdown(lines, dimension_label):
+            if not lines:
+                return ''
+            groups = {}
+            for line in lines:
+                lbl = dict(line._fields['line_type'].selection).get(line.line_type, 'Other')
+                grp = groups.setdefault(lbl, {'target': 0, 'actual': 0, 'count': 0})
+                grp['target'] += line.target_value
+                grp['actual'] += line.actual_value
+                grp['count'] += 1
+            breakdown_html = f'<div style="font-size:10px; font-weight:600; color:#888; text-transform:uppercase; margin-bottom:6px;">{dimension_label} Breakdown</div>'
+            for lbl, d in groups.items():
+                ach = (d['actual'] / d['target'] * 100) if d['target'] > 0 else 0
+                _, c = self._get_rating(ach)
+                breakdown_html += f'''
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                    <span style="font-size:11px; min-width:75px; color:#555;">{lbl}</span>
+                    <div style="flex:1; background:#E8E8E8; border-radius:3px; height:8px; overflow:hidden;">
+                        <div style="height:100%; width:{min(ach, 100):.1f}%; background:{c}; border-radius:3px;"></div>
+                    </div>
+                    <span style="font-size:11px; font-weight:600; color:{c}; min-width:40px; text-align:right;">{ach:.0f}%</span>
+                </div>'''
+            return breakdown_html
+
+        perf_breakdown = _build_breakdown(self.ninebox_performance_line_ids, 'Performance')
+        pot_breakdown = _build_breakdown(self.ninebox_potential_line_ids, 'Potential')
+
+        return f'''
+        <div style="font-family: 'Segoe UI', system-ui, sans-serif;">
+            <!-- Top: Quadrant badge + Score gauges -->
+            <div style="display:flex; align-items:center; gap:20px; margin-bottom:18px; flex-wrap:wrap;">
+                <!-- Quadrant badge -->
+                <div style="background:{emp_cell['bg']}; border:2px solid {emp_cell['border']}; border-radius:12px; padding:14px 20px; text-align:center; min-width:170px;">
+                    <div style="font-size:24px; margin-bottom:4px;">{emp_cell['icon']}</div>
+                    <div style="font-size:16px; font-weight:800; color:#333;">{emp_cell['name']}</div>
+                    <div style="font-size:11px; color:#888; margin-top:2px;">{emp_cell['sub']}</div>
+                    <div style="font-size:11px; font-weight:600; color:{overall_color}; margin-top:6px;">{overall_label}</div>
+                </div>
+                <!-- Score gauges -->
+                {_mini_gauge('Performance', perf_score, perf_color)}
+                {_mini_gauge('Potential', pot_score, pot_color)}
+                <!-- Breakdowns -->
+                <div style="flex:1; min-width:200px;">
+                    <div style="margin-bottom:10px;">{perf_breakdown}</div>
+                    <div>{pot_breakdown}</div>
                 </div>
             </div>
-            '''
 
-            record.performance_chart_html = html
+            <!-- 9-Box Grid -->
+            <div style="background:#FAFAFA; border:1px solid #EEE; border-radius:10px; padding:16px; overflow-x:auto;">
+                <div style="font-size:13px; font-weight:600; color:#555; margin-bottom:10px;">9-Box Grid Position</div>
+                {svg}
+                <div style="margin-top:8px; display:flex; align-items:center; gap:8px; font-size:10px; color:#888;">
+                    <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{emp_cell['border']};"></span>
+                    Employee Position (Performance: {perf_score:.1f}, Potential: {pot_score:.1f})
+                </div>
+            </div>
+        </div>'''
 
     # Add these compute methods
     
-    @api.depends('okr_line_ids.weighted_score', 
-                 'ninebox_performance_line_ids.weighted_score',
-                 'ninebox_potential_line_ids.weighted_score')
+    @api.depends('okr_line_ids.weighted_score', 'okr_line_ids.weightage',
+                 'ninebox_performance_line_ids.weighted_score', 'ninebox_performance_line_ids.weightage',
+                 'ninebox_potential_line_ids.weighted_score', 'ninebox_potential_line_ids.weightage')
     def _compute_total_scores(self):
-        """Calculate total scores for each section"""
+        """Calculate total scores as weighted average percentages (0-100 scale).
+        
+        Formula: total = sum(weighted_score) / sum(weightage) * 100
+        where weighted_score = (achievement% / 100) * weightage for each line.
+        This gives a proper 0-100% weighted average achievement.
+        """
         for record in self:
-            record.total_okr_score = sum(record.okr_line_ids.mapped('weighted_score'))
-            record.total_performance_score = sum(record.ninebox_performance_line_ids.mapped('weighted_score'))
-            record.total_potential_score = sum(record.ninebox_potential_line_ids.mapped('weighted_score'))
+            # OKR
+            okr_ws = sum(record.okr_line_ids.mapped('weighted_score'))
+            okr_wt = sum(record.okr_line_ids.mapped('weightage'))
+            record.total_okr_score = (okr_ws / okr_wt * 100) if okr_wt > 0 else 0.0
+            
+            # Performance
+            perf_ws = sum(record.ninebox_performance_line_ids.mapped('weighted_score'))
+            perf_wt = sum(record.ninebox_performance_line_ids.mapped('weightage'))
+            record.total_performance_score = (perf_ws / perf_wt * 100) if perf_wt > 0 else 0.0
+            
+            # Potential
+            pot_ws = sum(record.ninebox_potential_line_ids.mapped('weighted_score'))
+            pot_wt = sum(record.ninebox_potential_line_ids.mapped('weightage'))
+            record.total_potential_score = (pot_ws / pot_wt * 100) if pot_wt > 0 else 0.0
     
     @api.depends('total_okr_score', 'total_performance_score', 'total_potential_score', 'appraisal_template_type')
     def _compute_final_score(self):

@@ -67,9 +67,9 @@
                 </button>
             </xpath>
             
-            <!-- Add Template Configuration and Criteria inside notebook -->
-            <xpath expr="//notebook" position="inside">
-                <page string="Assessment Template" name="assessment_template">
+            <!-- Add Template Configuration and Criteria as FIRST tab in notebook -->
+            <xpath expr="//notebook/page[1]" position="before">
+                <page string="Assessment Template" name="assessment_template" autofocus="autofocus">
                     <!-- Hidden fields for domain computation -->
                     <field name="employee_team_ids" invisible="1"/>
                     <field name="available_okr_template_ids" invisible="1"/>
@@ -274,7 +274,8 @@
                             <group colspan="2">
                                 <field name="total_okr_score" readonly="1" string="Total OKR Score"
                                        widget="progressbar" 
-                                       options="{'max_value': 100}"/>
+                                       options="{'max_value': 100}"
+                                       help="Weighted Average Achievement (%)&#10;&#10;Formula: Sum(Weighted Score) / Sum(Distributed Weightage) &#x00D7; 100&#10;&#10;Where each line's Weighted Score = (Achievement% / 100) &#x00D7; Distributed Weightage&#10;And Achievement% = (Actual / Target) &#x00D7; 100&#10;&#10;Example:&#10;&#x2022; Line 1: Actual 80, Target 100 &#x2192; 80% achievement, Weightage 15 &#x2192; Weighted Score = 0.80 &#x00D7; 15 = 12&#10;&#x2022; Line 2: Actual 90, Target 100 &#x2192; 90% achievement, Weightage 10 &#x2192; Weighted Score = 0.90 &#x00D7; 10 = 9&#10;&#x2022; Total = (12 + 9) / (15 + 10) &#x00D7; 100 = 84%"/>
                             </group>
                         </group>
                         
@@ -355,7 +356,8 @@
                             <group colspan="2">
                                 <field name="total_performance_score" readonly="1" string="Total Performance Score"
                                        widget="progressbar" 
-                                       options="{'max_value': 100}"/>
+                                       options="{'max_value': 100}"
+                                       help="Weighted Average Performance Achievement (%)&#10;&#10;Formula: Sum(Weighted Score) / Sum(Distributed Weightage) &#x00D7; 100&#10;&#10;Where each line's Weighted Score = (Achievement% / 100) &#x00D7; Distributed Weightage&#10;And Achievement% = (Actual / Target) &#x00D7; 100&#10;&#10;This score represents how well the employee performed across all performance criteria, weighted by each criterion's importance.&#10;&#10;The score is used as the X-axis (Performance) on the 9-Box Grid."/>
                             </group>
                         </group>
                         
@@ -436,7 +438,8 @@
                             <group colspan="2">
                                 <field name="total_potential_score" readonly="1" string="Total Potential Score"
                                        widget="progressbar" 
-                                       options="{'max_value': 100}"/>
+                                       options="{'max_value': 100}"
+                                       help="Weighted Average Potential Achievement (%)&#10;&#10;Formula: Sum(Weighted Score) / Sum(Distributed Weightage) &#x00D7; 100&#10;&#10;Where each line's Weighted Score = (Achievement% / 100) &#x00D7; Distributed Weightage&#10;And Achievement% = (Actual / Target) &#x00D7; 100&#10;&#10;This score represents the employee's growth potential across all potential criteria, weighted by each criterion's importance.&#10;&#10;The score is used as the Y-axis (Potential) on the 9-Box Grid.&#10;&#10;Combined with Performance Score, these two values determine the employee's placement in the 9-Box Grid."/>
                             </group>
                         </group>
                         
