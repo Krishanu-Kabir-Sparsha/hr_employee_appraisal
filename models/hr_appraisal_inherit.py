@@ -860,9 +860,11 @@ class HrAppraisalInherit(models.Model):
                         </span>
                     </div>
                 </div>
+                <!-- Weighted Score field is hidden
                 <div style="font-size:10px; color:#999; margin-top:2px;">
-                    Weighted Score: {gdata['weighted_score']:.1f} / {gdata['weightage']:.1f} weightage
+                    Weighted Score: [value hidden]
                 </div>
+                -->
             </div>'''
 
         return f'''
@@ -870,17 +872,23 @@ class HrAppraisalInherit(models.Model):
             <div style="display:flex; align-items:center; gap:24px; margin-bottom:18px; flex-wrap:wrap;">
                 <div style="text-align:center;">{donut_svg}</div>
                 <div style="min-width:180px;">
-                    <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Performance Rating</div>
-                    <div style="font-size:20px; font-weight:800; color:{r_color}; margin:4px 0;">{r_label}</div>
-                    <div style="font-size:12px; color:#666;">
-                        Weighted Score: <strong style="color:#333;">{total_weighted:.1f}</strong>
-                        <span title="Weighted Score = Sum of (Achievement% / 100 x Distributed Weightage) for each criterion.&#10;&#10;Example: If Achievement is 80% and Weightage is 25, then that line contributes 0.80 x 25 = 20 to the total."
-                              style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:#E0E0E0; color:#666; font-size:10px; font-weight:700; margin-left:4px; vertical-align:middle;">?</span>
+                    <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px;">
+                        Performance Rating
+                        <span title="Rating is determined by the Overall Achievement %:&#10;&#10;  ≥ 90%  →  Outstanding&#10;  ≥ 75%  →  Exceeds Expectations&#10;  ≥ 60%  →  Meets Expectations&#10;  ≥ 40%  →  Needs Improvement&#10;  &lt; 40%  →  Unsatisfactory&#10;&#10;Overall Achievement % = (Total Actual × 100) / Total Target"
+                              style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:#E0E0E0; color:#666; font-size:9px; font-weight:700; margin-left:3px; vertical-align:middle;">?</span>
                     </div>
+                    <div style="font-size:20px; font-weight:800; color:{r_color}; margin:4px 0;">{r_label}</div>
+                    <!-- Weighted Score field is hidden
+                    <div style="font-size:12px; color:#666;">
+                        Weighted Score: [value hidden]
+                    </div>
+                    -->
                     <div style="font-size:12px; color:#666;">
                         Total: <strong style="color:#4A90E2;">{total_target:.0f}</strong>
                         <span style="color:#bbb;"> / </span>
                         <strong style="color:#26A69A;">{total_actual:.0f}</strong>
+                        <span title="Displays: Total Target / Total Actual&#10;&#10;Achievement % = (Actual × 100) / Target&#10;= ({total_actual:.0f} × 100) / {total_target:.0f}&#10;= {overall_pct:.1f}%"
+                              style="cursor:help; display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:#E0E0E0; color:#666; font-size:10px; font-weight:700; margin-left:4px; vertical-align:middle;">?</span>
                     </div>
                 </div>
                 <div style="display:flex; gap:10px; flex-wrap:wrap; flex:1;">{cards_html}</div>
