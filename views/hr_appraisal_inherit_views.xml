@@ -31,6 +31,16 @@
                            context="{'search_default_name': True}"/>
                 </h2>
             </xpath>
+
+            <!-- Add Department, Designation and Teams after appraisal_deadline -->
+            <xpath expr="//field[@name='appraisal_deadline']" position="after">
+                <field name="employee_department_id" readonly="1"/>
+                <field name="employee_job_id" readonly="1" string="Designation / Position"/>
+            </xpath>
+
+            <xpath expr="//field[@name='final_interview']" position="before">
+                <field name="employee_team_ids" widget="many2many_tags" readonly="1" string="Teams"/>
+            </xpath>
             
             <!-- Add Smart Buttons in button_box -->
             <xpath expr="//div[@name='button_box']" position="inside">

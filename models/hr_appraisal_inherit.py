@@ -60,6 +60,23 @@ class HrAppraisalInherit(models.Model):
         help="Select employee by Badge ID - supports Search More and type to filter"
     )
     
+    # ============ EMPLOYEE INFO (auto-populated from employee) ============
+    employee_department_id = fields.Many2one(
+        'hr.department',
+        string='Department',
+        related='employee_id.department_id',
+        store=True,
+        readonly=True,
+    )
+
+    employee_job_id = fields.Many2one(
+        'hr.job',
+        string='Designation / Position',
+        related='employee_id.job_id',
+        store=True,
+        readonly=True,
+    )
+
     # ============ EMPLOYEE'S TEAMS (for domain filtering) ============
     employee_team_ids = fields.Many2many(
         'oh.appraisal.team',
