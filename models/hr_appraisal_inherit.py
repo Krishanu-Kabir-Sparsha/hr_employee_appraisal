@@ -2,6 +2,7 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 import logging
+import re
 
 _logger = logging.getLogger(__name__)
 
@@ -1445,25 +1446,25 @@ class HrAppraisalInherit(models.Model):
         lines = self.okr_line_ids.sorted('sequence')
         for row_idx, line in enumerate(lines, start=2):
             # A: Seq (locked)
-            cells[f'A{row_idx}'] = {'content': str(line.sequence), 'style': 3}
+            cells[f'A{row_idx}'] = {'content': str(line.sequence), 'style': 3, 'isReadonly': True, 'isReadOnly': True}
             # B: Type (locked)
-            cells[f'B{row_idx}'] = {'content': str(dict(line._fields['line_type'].selection).get(line.line_type, '')), 'style': 3}
+            cells[f'B{row_idx}'] = {'content': str(dict(line._fields['line_type'].selection).get(line.line_type, '')), 'style': 3, 'isReadonly': True, 'isReadOnly': True}
             # C: Objective (locked)
-            cells[f'C{row_idx}'] = {'content': str(line.objective_breakdown or ''), 'style': 3}
+            cells[f'C{row_idx}'] = {'content': str(line.objective_breakdown or ''), 'style': 3, 'isReadonly': True, 'isReadOnly': True}
             # D: Priority (locked)
-            cells[f'D{row_idx}'] = {'content': str(dict(line._fields['priority'].selection).get(line.priority, '') if line.priority else ''), 'style': 3}
+            cells[f'D{row_idx}'] = {'content': str(dict(line._fields['priority'].selection).get(line.priority, '') if line.priority else ''), 'style': 3, 'isReadonly': True, 'isReadOnly': True}
             # E: Metric (locked)
-            cells[f'E{row_idx}'] = {'content': str(dict(line._fields['metric'].selection).get(line.metric, '') if line.metric else ''), 'style': 3}
+            cells[f'E{row_idx}'] = {'content': str(dict(line._fields['metric'].selection).get(line.metric, '') if line.metric else ''), 'style': 3, 'isReadonly': True, 'isReadOnly': True}
             # F: Target (locked)
-            cells[f'F{row_idx}'] = {'content': str(round(line.target_value, 2)), 'style': 3, 'format': 1}
+            cells[f'F{row_idx}'] = {'content': str(round(line.target_value, 2)), 'style': 3, 'format': 1, 'isReadonly': True, 'isReadOnly': True}
             # G: Actual (EDITABLE — the only editable column)
-            cells[f'G{row_idx}'] = {'content': str(round(line.actual_value, 2)), 'style': 4, 'format': 1}
+            cells[f'G{row_idx}'] = {'content': str(round(line.actual_value, 2)), 'style': 4, 'format': 1, 'isReadonly': False, 'isReadOnly': False}
             # H: Achievement % = IF(F>0, G/F*100, 0) — FORMULA
-            cells[f'H{row_idx}'] = {'content': f'=IF(F{row_idx}>0, G{row_idx}/F{row_idx}*100, 0)', 'style': 5, 'format': 1}
+            cells[f'H{row_idx}'] = {'content': f'=IF(F{row_idx}>0, G{row_idx}/F{row_idx}*100, 0)', 'style': 5, 'format': 1, 'isReadonly': True, 'isReadOnly': True}
             # I: Weightage (locked)
-            cells[f'I{row_idx}'] = {'content': str(round(line.weightage, 2)), 'style': 3, 'format': 1}
+            cells[f'I{row_idx}'] = {'content': str(round(line.weightage, 2)), 'style': 3, 'format': 1, 'isReadonly': True, 'isReadOnly': True}
             # J: Team (locked)
-            cells[f'J{row_idx}'] = {'content': str(line.team_id.name if line.team_id else ''), 'style': 3}
+            cells[f'J{row_idx}'] = {'content': str(line.team_id.name if line.team_id else ''), 'style': 3, 'isReadonly': True, 'isReadOnly': True}
 
         # Totals row with SUM formulas
         total_row = len(lines) + 2
@@ -1515,19 +1516,19 @@ class HrAppraisalInherit(models.Model):
             # Data rows
             sorted_lines = line_records.sorted('sequence')
             for row_idx, line in enumerate(sorted_lines, start=2):
-                sheet_cells[f'A{row_idx}'] = {'content': str(line.sequence), 'style': 7}
-                sheet_cells[f'B{row_idx}'] = {'content': str(dict(line._fields['line_type'].selection).get(line.line_type, '')), 'style': 7}
-                sheet_cells[f'C{row_idx}'] = {'content': str(line.objective_breakdown or ''), 'style': 7}
-                sheet_cells[f'D{row_idx}'] = {'content': str(dict(line._fields['priority'].selection).get(line.priority, '') if line.priority else ''), 'style': 7}
-                sheet_cells[f'E{row_idx}'] = {'content': str(dict(line._fields['metric'].selection).get(line.metric, '') if line.metric else ''), 'style': 7}
-                sheet_cells[f'F{row_idx}'] = {'content': str(round(line.target_value, 2)), 'style': 7, 'format': 1}
+                sheet_cells[f'A{row_idx}'] = {'content': str(line.sequence), 'style': 7, 'isReadonly': True, 'isReadOnly': True}
+                sheet_cells[f'B{row_idx}'] = {'content': str(dict(line._fields['line_type'].selection).get(line.line_type, '')), 'style': 7, 'isReadonly': True, 'isReadOnly': True}
+                sheet_cells[f'C{row_idx}'] = {'content': str(line.objective_breakdown or ''), 'style': 7, 'isReadonly': True, 'isReadOnly': True}
+                sheet_cells[f'D{row_idx}'] = {'content': str(dict(line._fields['priority'].selection).get(line.priority, '') if line.priority else ''), 'style': 7, 'isReadonly': True, 'isReadOnly': True}
+                sheet_cells[f'E{row_idx}'] = {'content': str(dict(line._fields['metric'].selection).get(line.metric, '') if line.metric else ''), 'style': 7, 'isReadonly': True, 'isReadOnly': True}
+                sheet_cells[f'F{row_idx}'] = {'content': str(round(line.target_value, 2)), 'style': 7, 'format': 1, 'isReadonly': True, 'isReadOnly': True}
                 # G: Actual (EDITABLE)
-                sheet_cells[f'G{row_idx}'] = {'content': str(round(line.actual_value, 2)), 'style': 8, 'format': 1}
+                sheet_cells[f'G{row_idx}'] = {'content': str(round(line.actual_value, 2)), 'style': 8, 'format': 1, 'isReadonly': False, 'isReadOnly': False}
                 # H: Achievement % — FORMULA
-                sheet_cells[f'H{row_idx}'] = {'content': f'=IF(F{row_idx}>0, G{row_idx}/F{row_idx}*100, 0)', 'style': 9, 'format': 1}
-                sheet_cells[f'I{row_idx}'] = {'content': str(round(line.weightage, 2)), 'style': 7, 'format': 1}
+                sheet_cells[f'H{row_idx}'] = {'content': f'=IF(F{row_idx}>0, G{row_idx}/F{row_idx}*100, 0)', 'style': 9, 'format': 1, 'isReadonly': True, 'isReadOnly': True}
+                sheet_cells[f'I{row_idx}'] = {'content': str(round(line.weightage, 2)), 'style': 7, 'format': 1, 'isReadonly': True, 'isReadOnly': True}
                 # J: Team (locked)
-                sheet_cells[f'J{row_idx}'] = {'content': str(line.team_id.name if line.team_id else ''), 'style': 7}
+                sheet_cells[f'J{row_idx}'] = {'content': str(line.team_id.name if line.team_id else ''), 'style': 7, 'isReadonly': True, 'isReadOnly': True}
 
             # Totals
             total_row = len(sorted_lines) + 2
@@ -1676,15 +1677,11 @@ class HrAppraisalInherit(models.Model):
 
         cells = sheet.get('cells', {})
         lines = self.okr_line_ids.sorted('sequence')
+        value_cache = {}
 
         for row_idx, line in enumerate(lines, start=2):
             actual_cell_ref = f'G{row_idx}'
-            cell = cells.get(actual_cell_ref, {})
-            actual_str = cell.get('content', '0')
-            try:
-                actual_val = float(actual_str)
-            except (ValueError, TypeError):
-                actual_val = 0.0
+            actual_val = self._extract_numeric_cell_value(cells, actual_cell_ref, value_cache)
 
             if abs(line.actual_value - actual_val) > 0.001:
                 line.with_context(skip_spreadsheet_sync=True).write({
@@ -1704,14 +1701,10 @@ class HrAppraisalInherit(models.Model):
         if perf_sheet:
             cells = perf_sheet.get('cells', {})
             perf_lines = self.ninebox_performance_line_ids.sorted('sequence')
+            perf_cache = {}
             for row_idx, line in enumerate(perf_lines, start=2):
                 actual_cell_ref = f'G{row_idx}'
-                cell = cells.get(actual_cell_ref, {})
-                actual_str = cell.get('content', '0')
-                try:
-                    actual_val = float(actual_str)
-                except (ValueError, TypeError):
-                    actual_val = 0.0
+                actual_val = self._extract_numeric_cell_value(cells, actual_cell_ref, perf_cache)
                 if abs(line.actual_value - actual_val) > 0.001:
                     line.with_context(skip_spreadsheet_sync=True).write({
                         'actual_value': actual_val
@@ -1722,18 +1715,173 @@ class HrAppraisalInherit(models.Model):
         if pot_sheet:
             cells = pot_sheet.get('cells', {})
             pot_lines = self.ninebox_potential_line_ids.sorted('sequence')
+            pot_cache = {}
             for row_idx, line in enumerate(pot_lines, start=2):
                 actual_cell_ref = f'G{row_idx}'
-                cell = cells.get(actual_cell_ref, {})
-                actual_str = cell.get('content', '0')
-                try:
-                    actual_val = float(actual_str)
-                except (ValueError, TypeError):
-                    actual_val = 0.0
+                actual_val = self._extract_numeric_cell_value(cells, actual_cell_ref, pot_cache)
                 if abs(line.actual_value - actual_val) > 0.001:
                     line.with_context(skip_spreadsheet_sync=True).write({
                         'actual_value': actual_val
                     })
+
+    def _extract_numeric_cell_value(self, cells, cell_ref, value_cache=None, stack=None):
+        """Extract a numeric value from a spreadsheet cell.
+
+        Supports both plain numeric content and formulas like =I4+F4.
+        """
+        value_cache = value_cache or {}
+        stack = stack or set()
+
+        if cell_ref in value_cache:
+            return value_cache[cell_ref]
+        if cell_ref in stack:
+            return 0.0
+
+        stack.add(cell_ref)
+        cell = cells.get(cell_ref, {})
+        content = str(cell.get('content', '') or '').strip()
+
+        if not content:
+            value = 0.0
+        elif content.startswith('='):
+            value = self._evaluate_formula(content[1:], cells, value_cache, stack)
+        else:
+            value = self._safe_float(content)
+
+        stack.discard(cell_ref)
+        value_cache[cell_ref] = value
+        return value
+
+    def _evaluate_formula(self, expr, cells, value_cache, stack):
+        """Evaluate a limited spreadsheet formula safely into a float.
+
+        Supports arithmetic, cell references, IF, SUM, AVERAGE, MIN, MAX.
+        """
+        if not expr:
+            return 0.0
+
+        expr = expr.strip()
+
+        # Handle IF(condition, true_value, false_value)
+        if expr.upper().startswith('IF(') and expr.endswith(')'):
+            inner = expr[3:-1]
+            args = self._split_formula_args(inner)
+            if len(args) == 3:
+                cond_val = self._evaluate_condition(args[0], cells, value_cache, stack)
+                return self._evaluate_formula(args[1] if cond_val else args[2], cells, value_cache, stack)
+
+        # Expand range-based functions first
+        expr = self._replace_range_function(expr, 'SUM', cells, value_cache, stack, sum)
+        expr = self._replace_range_function(
+            expr,
+            'AVERAGE',
+            cells,
+            value_cache,
+            stack,
+            lambda vals: (sum(vals) / len(vals)) if vals else 0.0,
+        )
+        expr = self._replace_range_function(
+            expr,
+            'MIN',
+            cells,
+            value_cache,
+            stack,
+            lambda vals: min(vals) if vals else 0.0,
+        )
+        expr = self._replace_range_function(
+            expr,
+            'MAX',
+            cells,
+            value_cache,
+            stack,
+            lambda vals: max(vals) if vals else 0.0,
+        )
+
+        # Replace cell refs with numeric values
+        def repl_cell(match):
+            ref = match.group(1)
+            return str(self._extract_numeric_cell_value(cells, ref, value_cache, stack))
+
+        expr = re.sub(r'\b([A-Z]+\d+)\b', repl_cell, expr)
+
+        # Safe arithmetic only
+        if not re.fullmatch(r'[0-9\s\.\+\-\*/\(\),<>!=]*', expr):
+            return 0.0
+
+        try:
+            return float(eval(expr, {'__builtins__': {}}, {}))
+        except Exception:
+            return 0.0
+
+    def _replace_range_function(self, expr, func_name, cells, value_cache, stack, reducer):
+        pattern = rf'{func_name}\(([A-Z]+\d+:[A-Z]+\d+)\)'
+
+        def repl(match):
+            refs = self._expand_cell_range(match.group(1))
+            vals = [self._extract_numeric_cell_value(cells, ref, value_cache, stack) for ref in refs]
+            return str(reducer(vals))
+
+        return re.sub(pattern, repl, expr, flags=re.IGNORECASE)
+
+    def _evaluate_condition(self, expr, cells, value_cache, stack):
+        cond_expr = re.sub(
+            r'\b([A-Z]+\d+)\b',
+            lambda m: str(self._extract_numeric_cell_value(cells, m.group(1), value_cache, stack)),
+            expr,
+        )
+        if not re.fullmatch(r'[0-9\s\.\+\-\*/\(\),<>!=]*', cond_expr):
+            return False
+        try:
+            return bool(eval(cond_expr, {'__builtins__': {}}, {}))
+        except Exception:
+            return False
+
+    def _split_formula_args(self, args_str):
+        args = []
+        current = []
+        level = 0
+        for ch in args_str:
+            if ch == ',' and level == 0:
+                args.append(''.join(current).strip())
+                current = []
+                continue
+            if ch == '(':
+                level += 1
+            elif ch == ')':
+                level = max(level - 1, 0)
+            current.append(ch)
+        if current:
+            args.append(''.join(current).strip())
+        return args
+
+    def _expand_cell_range(self, range_ref):
+        """Expand range like A2:C3 into a list of cell refs."""
+        start, end = range_ref.split(':')
+        start_col, start_row = self._split_cell_ref(start)
+        end_col, end_row = self._split_cell_ref(end)
+        refs = []
+        for row in range(start_row, end_row + 1):
+            for col_num in range(self._column_to_number(start_col), self._column_to_number(end_col) + 1):
+                refs.append(f"{self._number_to_column(col_num - 1)}{row}")
+        return refs
+
+    def _split_cell_ref(self, ref):
+        m = re.fullmatch(r'([A-Z]+)(\d+)', ref)
+        if not m:
+            return 'A', 1
+        return m.group(1), int(m.group(2))
+
+    def _column_to_number(self, col):
+        result = 0
+        for ch in col:
+            result = result * 26 + (ord(ch) - ord('A') + 1)
+        return result
+
+    def _safe_float(self, value):
+        try:
+            return float(value)
+        except Exception:
+            return 0.0
 
     def action_refresh_spreadsheet(self):
         """Refresh button action: Bidirectional sync between spreadsheet and criteria.
@@ -1754,12 +1902,12 @@ class HrAppraisalInherit(models.Model):
         self._sync_criteria_to_spreadsheet()
 
         return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _('Spreadsheet Refreshed'),
-                'message': _('Criteria and spreadsheet data have been synchronized successfully.'),
-                'type': 'success',
-                'sticky': False,
-            }
+            'type': 'ir.actions.act_window',
+            'name': _('Appraisal'),
+            'res_model': 'hr.appraisal',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [(False, 'form')],
+            'target': 'current',
+            'context': dict(self.env.context, spreadsheet_refreshed=True),
         }
